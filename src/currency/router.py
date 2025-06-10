@@ -23,7 +23,7 @@ def get_symbols(session: Session = Depends(get_session)):
 
 
 @router.get("/convert", response_model=BatchConversionResponse)
-def convert(
+async def convert(
     from_symbol: str = Query(
         ..., 
         alias="from", 
@@ -33,7 +33,6 @@ def convert(
 ):
     from_sym = from_symbol.upper()
 
-    # Basit bir sembol kontrolü
     currency_obj = session.get(Currency, from_sym)
     if not currency_obj or not currency_obj.active:
         raise HTTPException(status_code=400, detail=f"Unsupported or inactive from_symbol: {from_sym}")
@@ -50,7 +49,7 @@ def convert(
         )
 
     try:
-        cross_rates_map = get_conversion_rates_fixer(from_sym, to_symbols)
+        cross_rates_map = await get_conversion_rates_fixer(from_sym, to_symbols)
         # cross_rates_map: Dict[to_symbol:str, rate:float]
     except CurrencyAPIError as e:
         raise HTTPException(
