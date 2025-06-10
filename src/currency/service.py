@@ -2,20 +2,18 @@
 
 import os
 import time
-import requests
+import httpx 
 from typing import Tuple, List, Dict
+from src.core.config import settings
 from .exceptions import CurrencyAPIError
-
-FIXER_API_URL = "http://data.fixer.io/api/latest"
 
 # ---------------------------------------------------
 # in-memory cache:
 #    { from: (timestamp_add, {to: rate, ...}) }
 # ---------------------------------------------------
 _CACHE: Dict[str, tuple[float, Dict[str, float]]] = {}
-_CACHE_TTL = 3600  # saniye cinsinden: 1 saat
 
-def get_conversion_rates_fixer(from_sym: str, to_syms: List[str]) -> Dict[str, float]:
+async def get_conversion_rates_fixer(from_sym: str, to_syms: List[str]) -> Dict[str, float]:
     """
     - from_sym: "USD"
     - to_syms:  ["EUR","TRY","GBP",...]
@@ -26,12 +24,11 @@ def get_conversion_rates_fixer(from_sym: str, to_syms: List[str]) -> Dict[str, f
     cache_entry = _CACHE.get(from_sym)
     if cache_entry:
         timestamp, cached_rates = cache_entry
-        if (time.time() - timestamp) < _CACHE_TTL:
+        if (time.time() - timestamp) < settings.CACHE_TTL_SECONDS:
             # Cache hit
             return cached_rates
 
-    api_key = os.getenv("FIXER_API_KEY")
-    if not api_key:
+    if not settings.FIXER_API_KEY:
         raise CurrencyAPIError(code=500, message="Server configuration error: missing FIXER_API_KEY.")
 
     to_syms_upper = [sym.upper() for sym in to_syms if sym.upper() != from_sym]
@@ -39,14 +36,16 @@ def get_conversion_rates_fixer(from_sym: str, to_syms: List[str]) -> Dict[str, f
     unique_symbols = list(dict.fromkeys(all_symbols))
 
     params = {
-        "access_key": api_key,
+        "access_key": settings.FIXER_API_KEY,
         "symbols": ",".join(unique_symbols)
     }
 
     try:
-        response = requests.get(FIXER_API_URL, params=params, timeout=5)
+        async with httpx.AsyncClient() as client:
+            response = await client.get(settings.FIXER_API_URL, params=params, timeout=5)
+        response.raise_for_status() # HTTP 4xx veya 5xx hatalarında exception fırlatır
         data = response.json()
-    except requests.RequestException as e:
+    except httpx.RequestException as e:
         raise CurrencyAPIError(code=502, message=f"External API request failed: {e}")
     except ValueError:
         raise CurrencyAPIError(code=502, message="External API returned invalid JSON.")
