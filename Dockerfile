@@ -25,7 +25,6 @@ ENV DATABASE_URL=sqlite:////app/data/currency.db
 # Expose port
 EXPOSE 8000
 
-# Dockerfile içindeki HEALTHCHECK komutunu şöyle güncelle:
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
     CMD python -c "import httpx; httpx.get('http://localhost:8000/')" || exit 1
 

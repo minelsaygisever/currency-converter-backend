@@ -1,5 +1,4 @@
 # Virtualenv
-# Sanal ortam klasörleri. Projenin ana dizinindeki venv, .venv, env klasörlerini yok sayar.
 /venv/
 /.venv/
 /env/
