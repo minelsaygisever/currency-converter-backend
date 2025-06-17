@@ -8,10 +8,12 @@ from .schemas import BatchConversionResponse, CurrencyRead, RateItem
 from .service import get_conversion_rates_fixer
 from .exceptions import CurrencyAPIError
 from src.core.database import get_session
+from src.core.security import verify_api_key
 
 
 router = APIRouter(
-    tags=["API"] 
+    tags=["API"],
+    dependencies=[Depends(verify_api_key)] 
 )
 
 # --- Endpoint for Currencies Resource ---
