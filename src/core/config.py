@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     
     # Database
     DATABASE_URL: str = "sqlite:///./currency.db"
+
+    # Security
+    API_SECRET_KEY: str
     
     # Fixer API
     FIXER_API_KEY: str

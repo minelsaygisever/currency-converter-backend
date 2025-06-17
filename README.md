@@ -43,7 +43,7 @@ All endpoints are prefixed with `/api/v1`.
 
 ### 2. List Active Symbols
 
--   **Endpoint:** `GET /api/v1/currency/symbols`
+-   **Endpoint:** `GET /api/v1/currencies`
 -   **Description:** Lists all currencies marked as `active=True` in the database.
 -   **Sample Response:**
     ```json
@@ -61,11 +61,11 @@ All endpoints are prefixed with `/api/v1`.
 
 ### 3. Convert Currency
 
--   **Endpoint:** `GET /api/v1/currency/convert`
+-   **Endpoint:** `GET /api/v1/currencies`
 -   **Description:** Returns the current exchange rates from the currency specified in the `from` parameter to all other active currencies.
 -   **Parameters:**
     -   `from` (required): The source currency code (e.g., `USD`).
--   **Sample Request:** `http://127.0.0.1:8000/api/v1/currency/convert?from=USD`
+-   **Sample Request:** `http://127.0.0.1:8000/api/v1/rates?from=USD`
 -   **Sample Response:**
     ```json
     {
