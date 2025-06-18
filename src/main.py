@@ -4,15 +4,29 @@ from datetime import datetime
 
 from src.currency.router import router as currency_router
 from src.core.database import init_db
+from src.core.redis_client import redis_client
 
 from contextlib import asynccontextmanager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting up Currency Converter API...")
+
     init_db()
     logger.info("Database initialized successfully")
+
+    # Check Redis connection
+    if redis_client:
+        try:
+            redis_client.ping()
+            logger.info("Redis connection verified.")
+        except Exception as e:
+            logger.error(f"Could not verify Redis connection on startup: {e}")
+    else:
+        logger.warning("Redis client is not available.")
+
     yield
+
     logger.info("Shutting down Currency Converter API...")
 
 logging.basicConfig(

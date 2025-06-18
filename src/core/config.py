@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "sqlite:///./currency.db"
 
+    # Redis
+    REDIS_HOST: str
+    REDIS_PORT: int = 6379
+
     # Security
     API_SECRET_KEY: str
     
