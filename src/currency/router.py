@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, HTTPException, Query, Depends, Request
 from fastapi.concurrency import run_in_threadpool
 from sqlmodel import Session, select
 from typing import List
@@ -9,15 +9,16 @@ from .service import get_conversion_rates_fixer
 from .exceptions import CurrencyAPIError
 from src.core.database import get_session
 from src.core.security import verify_api_key
+from src.core.rate_limiter import manual_rate_limiter
 
 
 router = APIRouter(
     tags=["API"],
-    dependencies=[Depends(verify_api_key)] 
+    dependencies=[Depends(verify_api_key), Depends(manual_rate_limiter)] 
 )
 
 # --- Endpoint for Currencies Resource ---
-@router.get("/currencies", response_model=List[CurrencyRead])
+@router.get("/currencies", response_model=List[CurrencyRead], response_model_exclude_defaults=False)
 async def get_all_active_currencies(session: Session = Depends(get_session)):
     """
     Returns a list of all currencies that are marked as active in the system.
