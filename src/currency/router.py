@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query, Depends, Request
+from fastapi import APIRouter, HTTPException, Query, Depends
 from fastapi.concurrency import run_in_threadpool
 from sqlmodel import Session, select
 from typing import List

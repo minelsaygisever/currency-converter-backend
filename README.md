@@ -9,18 +9,20 @@ This project is a simple and effective RESTful API service that provides real-ti
 
 ## ✨ Features
 
--   **Real-time Currency Conversion:** Convert from a specified base currency to all other active currencies.
--   **List Active Currencies:** Returns all currency symbols that are registered and active in the system.
--   **Performance-Oriented Caching:** An in-memory cache mechanism with a 1-hour TTL (Time-To-Live) to reduce external API calls.
+-   **Real-time Exchange Rates:** Get up-to-date conversion rates from a specified base currency to all other active currencies.
+-   **List Active Currencies:** Returns a full list of currency symbols that are registered and active in the system.
+-   **Secure API Endpoints:** All endpoints are protected via a mandatory `X-API-KEY` header to prevent unauthorized access.
+-   **Per-Device Rate Limiting:** Protects the API from abuse by limiting the number of requests per device, tracked via an `X-Device-ID` header.
+-   **High-Performance Caching:** Utilizes **Redis** for caching external API responses, significantly reducing latency and dependency on third-party services.
 -   **Asynchronous Architecture:** High-performance, non-blocking structure thanks to `FastAPI` and `httpx`.
--   **Database Integration:** Uses `SQLModel` for storing and managing currency information in a database.
--   **Containerized:** Fully containerized with Docker and Docker Compose for a consistent development environment.
--   **Test Coverage:** Includes unit and integration tests written with `pytest`.
+-   **Database Integration:** Uses `SQLModel` for storing and managing currency information in a SQLite database.
+-   **Containerized:** Fully containerized with Docker and Docker Compose for a consistent development and deployment environment.
 
 ## 🛠️ Tech Stack
 
 -   **Backend:** Python 3.12, FastAPI
 -   **Database:** SQLite (with SQLModel ORM)
+-   **Caching / In-Memory Database:** Redis
 -   **Containerization:** Docker, Docker Compose
 -   **Data Validation:** Pydantic
 -   **Asynchronous HTTP Requests:** HTTPX
@@ -45,6 +47,9 @@ All endpoints are prefixed with `/api/v1`.
 
 -   **Endpoint:** `GET /api/v1/currencies`
 -   **Description:** Lists all currencies marked as `active=True` in the database.
+-   **Headers:**
+    -   `X-API-KEY` (required): The secret API key for authentication.
+    -   `X-Device-ID` (required): The unique identifier for the client device.
 -   **Sample Response:**
     ```json
     [
@@ -63,6 +68,9 @@ All endpoints are prefixed with `/api/v1`.
 
 -   **Endpoint:** `GET /api/v1/currencies`
 -   **Description:** Returns the current exchange rates from the currency specified in the `from` parameter to all other active currencies.
+-   **Headers:**
+    -   `X-API-KEY` (required): The secret API key for authentication.
+    -   `X-Device-ID` (required): The unique identifier for the client device.
 -   **Parameters:**
     -   `from` (required): The source currency code (e.g., `USD`).
 -   **Sample Request:** `http://127.0.0.1:8000/api/v1/rates?from=USD`
