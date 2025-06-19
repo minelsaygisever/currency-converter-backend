@@ -21,9 +21,9 @@ class Settings(BaseSettings):
     # Security
     API_SECRET_KEY: str
     
-    # Fixer API
-    FIXER_API_KEY: str
-    FIXER_API_URL: str = "http://data.fixer.io/api/latest"
+    # Open Exchange Rates API
+    OPEN_EXCHANGE_RATES_API_KEY: str
+    OPEN_EXCHANGE_RATES_API_URL: str = "https://openexchangerates.org/api/latest.json"
     
     # Cache
     CACHE_TTL_SECONDS: int = 3600  # 1 hour

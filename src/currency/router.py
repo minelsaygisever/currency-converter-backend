@@ -5,7 +5,7 @@ from typing import List
 
 from .models import Currency
 from .schemas import BatchConversionResponse, CurrencyRead, RateItem
-from .service import get_conversion_rates_fixer
+from .service import get_conversion_rates
 from .exceptions import CurrencyAPIError
 from src.core.database import get_session
 from src.core.security import verify_api_key
@@ -65,7 +65,7 @@ async def get_rates(
         )
 
     try:
-        cross_rates_map = await get_conversion_rates_fixer(base_sym, to_symbols)
+        cross_rates_map = await get_conversion_rates(base_sym, to_symbols)
         # cross_rates_map: Dict[to_symbol:str, rate:float]
     except CurrencyAPIError as e:
         raise HTTPException(

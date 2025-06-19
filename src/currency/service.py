@@ -12,71 +12,83 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-async def get_conversion_rates_fixer(from_sym: str, to_syms: List[str]) -> Dict[str, float]:
+async def _get_all_rates_from_usd() -> Dict[str, float]:
     """
-    Fetches conversion rates. First, it checks for a cached result in Redis.
-    If not found, it fetches from the Fixer API and caches the result in Redis.
-    
-    - from_sym: "USD"
-    - to_syms:  ["EUR","TRY","GBP",...]
-    - return:   { "EUR": 0.92, "TRY": 32.85, "GBP": 0.78, ... }
+    Fetches all available currency rates against the base currency (USD)
+    from the external API and caches the result in Redis.
+    This function is the single point of contact with the external API.
     """
     
-    # redis cache check:
-    cache_key = f"rates:{from_sym}"
-
+    # 1. Cache Check: All exchange rates will be stored under a single key.
+    cache_key = "latest_usd_rates"
     if redis_client:
-        cached_rates = redis_client.get(cache_key)
-        if cached_rates:
-            logger.info(f"Cache HIT for key: {cache_key}")
-            # The data in Redis is stored as a JSON string, so we need to decode it.
-            return json.loads(cached_rates)
+        cached_data = redis_client.get(cache_key)
+        if cached_data:
+            logger.info(f"CACHE HIT: Found all rates under key '{cache_key}'.")
+            return json.loads(cached_data)
 
-    logger.info(f"Cache MISS for key: {cache_key}. Fetching from Fixer API.")
+    # 2. Cache miss, pull it from API.
+    logger.info(f"CACHE MISS: Key '{cache_key}' not found. Fetching from OpenExchangeRates API.")
+    
 
-    if not settings.FIXER_API_KEY:
-        raise CurrencyAPIError(code=500, message="Server configuration error: missing FIXER_API_KEY.")
+    if not settings.OPEN_EXCHANGE_RATES_API_KEY:
+        raise CurrencyAPIError(code=500, message="Server configuration error: missing OPEN_EXCHANGE_RATES_API_KEY.")
 
-    to_syms_upper = [sym.upper() for sym in to_syms if sym.upper() != from_sym]
-    all_symbols = [from_sym, "EUR"] + to_syms_upper
-    unique_symbols = list(dict.fromkeys(all_symbols))
-
-    params = {
-        "access_key": settings.FIXER_API_KEY,
-        "symbols": ",".join(unique_symbols)
-    }
+    api_url = f"{settings.OPEN_EXCHANGE_RATES_API_URL}?app_id={settings.OPEN_EXCHANGE_RATES_API_KEY}"
 
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.get(settings.FIXER_API_URL, params=params, timeout=5)
+            response = await client.get(api_url, timeout=10)
         response.raise_for_status()
         data = response.json()
-    except httpx.RequestException as e:
+    except httpx.RequestError as e:
         raise CurrencyAPIError(code=502, message=f"External API request failed: {e}")
     except ValueError:
         raise CurrencyAPIError(code=502, message="External API returned invalid JSON.")
 
-    if not data.get("success", False):
-        error_info = data.get("error", {})
-        raise CurrencyAPIError(code=502, message=f"Fixer API error: {error_info.get('info')}")
+    if "error" in data:
+        raise CurrencyAPIError(code=data.get("status"), message=data.get("description"))
 
-    rates = data.get("rates", {})  # {"EUR":1.0,"USD":1.08,"TRY":19.53,...}
-    eur_to_from = rates.get(from_sym.upper())
-    if eur_to_from is None:
-        raise CurrencyAPIError(code=502, message=f"Fixer API did not return rate for {from_sym}")
+    rates = data.get("rates", {}) # {"AED": 3.67, "AFN": 71.8,... "USD": 1.0, ...}
+
+    # 3. Save the new result to redis
+    if redis_client and rates:
+        redis_client.set(cache_key, json.dumps(rates), ex=settings.CACHE_TTL_SECONDS)
+        logger.info(f"CACHE SET: Saved all rates to key '{cache_key}'.")
+        
+    return rates
+
+
+async def get_conversion_rates(from_sym: str, to_syms: List[str]) -> Dict[str, float]:
+    """
+    Calculates conversion rates using a cached master list of USD-based rates.
+    It does NOT make an external API call directly.
+    """
+
+    all_rates_vs_usd = await _get_all_rates_from_usd()
+
+    from_sym_upper = from_sym.upper()
+
+    # the exchange rate of the desired 'from' currency against USD
+    usd_to_from_rate = all_rates_vs_usd.get(from_sym_upper)
+    if usd_to_from_rate is None:
+        raise CurrencyAPIError(code=400, message=f"Base currency '{from_sym_upper}' is not supported.")
 
     cross_rates: Dict[str, float] = {}
     for to_sym in to_syms:
-        eur_to_to = rates.get(to_sym)
-        if eur_to_to is None:
-            raise CurrencyAPIError(code=502, message=f"Fixer API did not return rate for {to_sym}")
+        to_sym_upper = to_sym.upper()
+        if to_sym_upper == from_sym_upper:
+            continue
 
-        cross_rate = eur_to_to / eur_to_from
-        cross_rates[to_sym] = round(cross_rate, 6)
-
-    #  Save the new result to redis
-    if redis_client and cross_rates:
-        redis_client.set(cache_key, json.dumps(cross_rates), ex=settings.CACHE_TTL_SECONDS)
-        logger.info(f"Saved new rates to cache for key: {cache_key}")
-
+        # the exchange rate of the desired 'to' currency against USD
+        usd_to_to_rate = all_rates_vs_usd.get(to_sym_upper)
+        if usd_to_to_rate is None:
+            logger.warning(f"Target currency '{to_sym_upper}' not found in rate list. Skipping.")
+            continue
+            
+        # Cross rate calculation
+        # EUR -> TRY = (USD -> TRY) / (USD -> EUR)
+        cross_rate = usd_to_to_rate / usd_to_from_rate
+        cross_rates[to_sym_upper] = round(cross_rate, 6)
+        
     return cross_rates
