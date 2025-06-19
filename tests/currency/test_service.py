@@ -1,6 +1,6 @@
 # tests/currency/test_service.py
 import pytest
-from src.currency.service import get_conversion_rates_fixer
+from src.currency.service import get_conversion_rates
 from src.currency.exceptions import CurrencyAPIError
 
 @pytest.mark.asyncio
@@ -21,7 +21,7 @@ async def test_get_conversion_rates_successful(mocker):
     # 2. Act 
     from_sym = "USD"
     to_syms = ["TRY"]
-    result = await get_conversion_rates_fixer(from_sym, to_syms)
+    result = await get_conversion_rates(from_sym, to_syms)
 
     # 3. Assert 
     assert "TRY" in result
