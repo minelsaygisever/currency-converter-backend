@@ -3,7 +3,7 @@
 ![Python](https://img.shields.io/badge/Python-3.12-blue.svg)
 ![Framework](https://img.shields.io/badge/Framework-FastAPI-green.svg)
 ![Container](https://img.shields.io/badge/Container-Docker-blue.svg)
-![Tests](https://img.shields.io/badge/Tests-Pytest-red.svg)
+![Deployment](https://img.shields.io/badge/Deployment-AWS_ECS-orange.svg)
 
 This project is a simple and effective RESTful API service that provides real-time exchange rate conversions between currencies. The project is built using modern Python technologies and backend development best practices, and it is fully containerized with Docker for easy setup and deployment.
 
