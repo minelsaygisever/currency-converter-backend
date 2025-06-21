@@ -6,7 +6,7 @@ import logging
 from typing import List, Dict
 
 from src.core.config import settings
-from src.core.redis_client import redis_client # Import our Redis client
+from src.core.redis_client import get_redis_client # Import our Redis client
 from .exceptions import CurrencyAPIError
 import httpx 
 
@@ -21,6 +21,7 @@ async def _get_all_rates_from_usd() -> Dict[str, float]:
     
     # 1. Cache Check: All exchange rates will be stored under a single key.
     cache_key = "latest_usd_rates"
+    redis_client = get_redis_client()
     if redis_client:
         cached_data = redis_client.get(cache_key)
         if cached_data:

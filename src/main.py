@@ -4,7 +4,7 @@ from datetime import datetime
 
 from src.currency.router import router as currency_router
 from src.core.database import init_db
-from src.core.redis_client import redis_client
+from src.core.redis_client import get_redis_client
 
 from contextlib import asynccontextmanager
 
@@ -16,6 +16,7 @@ async def lifespan(app: FastAPI):
     logger.info("Database initialized successfully")
 
     # Check Redis connection
+    redis_client = get_redis_client()
     if redis_client:
         try:
             redis_client.ping()

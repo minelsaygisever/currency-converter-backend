@@ -1,6 +1,6 @@
 import logging
 from fastapi import Request, HTTPException, status
-from src.core.redis_client import redis_client
+from src.core.redis_client import get_redis_client
 
 logger = logging.getLogger(__name__)
 REQUEST_LIMIT = 20 
@@ -10,6 +10,7 @@ async def manual_rate_limiter(request: Request):
     """
     A simple, manual rate limiter dependency using Redis.
     """
+    redis_client = get_redis_client()
     if not redis_client:
         logger.warning("Redis client not available, skipping rate limit check.")
         return
