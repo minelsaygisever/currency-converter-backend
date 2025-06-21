@@ -15,3 +15,6 @@ redis~=5.0
 pytest~=8.4
 pytest-asyncio~=1.0
 pytest-mock~=3.14
+
+# --- Database Driver ---
+psycopg2-binary

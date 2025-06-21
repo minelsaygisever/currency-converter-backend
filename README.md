@@ -15,15 +15,15 @@ This project is a simple and effective RESTful API service that provides real-ti
 -   **Per-Device Rate Limiting:** Protects the API from abuse by limiting the number of requests per device, tracked via an `X-Device-ID` header.
 -   **High-Performance Caching:** Utilizes **Redis** for caching external API responses, significantly reducing latency and dependency on third-party services.
 -   **Asynchronous Architecture:** High-performance, non-blocking structure thanks to `FastAPI` and `httpx`.
--   **Database Integration:** Uses `SQLModel` for storing and managing currency information in a SQLite database.
--   **Containerized:** Fully containerized with Docker and Docker Compose for a consistent development and deployment environment.
+-   **Database Integration:** Uses `SQLModel` for storing and managing currency information.
+-   **Containerized:** Fully containerized with Docker for a consistent development and deployment environment.
 
 ## 🛠️ Tech Stack
 
 -   **Backend:** Python 3.12, FastAPI
--   **Database:** SQLite (with SQLModel ORM)
--   **Caching / In-Memory Database:** Redis
--   **Containerization:** Docker, Docker Compose
+-   **Database:** PostgreSQL (Production on AWS RDS)
+-   **Caching / In-Memory Database:** Redis (Production on AWS ElastiCache)
+-   **Cloud & Deployment:** AWS ECS (Fargate), AWS ECR, Docker
 -   **Data Validation:** Pydantic
 -   **Asynchronous HTTP Requests:** HTTPX
 -   **Testing:** Pytest, pytest-mock, pytest-asyncio
