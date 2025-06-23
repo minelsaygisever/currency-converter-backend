@@ -25,5 +25,6 @@ class CurrencyRead(BaseModel):
     flag_url: str | None
     decimal_places: int
     quick_rates: bool
+    quick_rates_order: int | None
 
     model_config = ConfigDict(from_attributes=True)

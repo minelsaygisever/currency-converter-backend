@@ -10,3 +10,4 @@ class Currency(SQLModel, table=True):
     flag_url: str | None = Field(default=None, max_length=255)
     decimal_places: int = Field(default=2)
     quick_rates: bool = Field(default=False, index=True)
+    quick_rates_order: int | None = Field(default=None, index=True)

@@ -25,7 +25,12 @@ async def get_all_active_currencies(session: Session = Depends(get_session)):
     """
     def get_all_currencies_from_db():
         return session.exec(
-            select(Currency).where(Currency.active == True).order_by(Currency.code)
+            select(Currency)
+            .where(Currency.active == True)
+            .order_by(
+                Currency.quick_rates_order.asc().nullslast(), 
+                Currency.code.asc()
+            )
         ).all()
 
     currencies = await run_in_threadpool(get_all_currencies_from_db)
