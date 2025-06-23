@@ -45,7 +45,7 @@ All endpoints are prefixed with `/api/v1`.
 
 ### 2. List Active Symbols
 
--   **Endpoint:** `GET /api/v1/currencies`
+-   **Endpoint:** `GET /currency-converter/v1/currencies`
 -   **Description:** Lists all currencies marked as `active=True` in the database.
 -   **Headers:**
     -   `X-API-KEY` (required): The secret API key for authentication.
@@ -85,14 +85,14 @@ All endpoints are prefixed with `/api/v1`.
 
 ### 3. Convert Currency
 
--   **Endpoint:** `GET /api/v1/currencies`
+-   **Endpoint:** `GET /currency-converter/v1/rates`
 -   **Description:** Returns the current exchange rates from the currency specified in the `from` parameter to all other active currencies.
 -   **Headers:**
     -   `X-API-KEY` (required): The secret API key for authentication.
     -   `X-Device-ID` (required): The unique identifier for the client device.
 -   **Parameters:**
     -   `from` (required): The source currency code (e.g., `USD`).
--   **Sample Request:** `http://127.0.0.1:8000/api/v1/rates?from=USD`
+-   **Sample Request:** `http://api.minelsaygisever.com/currency-converter/v1/rates?from=USD`
 -   **Sample Response:**
     ```json
     {
