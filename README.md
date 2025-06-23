@@ -57,9 +57,28 @@ All endpoints are prefixed with `/api/v1`.
         "code": "USD",
         "name": "United States Dollar",
         "symbol": "$",
-        "active": true,
+        "flag_url": "https://.../USD.png",
+        "decimal_places": 2,
+        "quick_rates": true,
+        "quick_rates_order": 1
+      },
+      {
+        "code": "TRY",
+        "name": "Turkish Lira",
+        "symbol": "₺",
+        "flag_url": "https://.../TRY.png",
+        "decimal_places": 2,
+        "quick_rates": true,
+        "quick_rates_order": 3
+      },
+      {
+        "code": "XYZ",
+        "name": "Some Other Currency",
+        "symbol": "X",
         "flag_url": null,
-        "decimal_places": 2
+        "decimal_places": 2,
+        "quick_rates": false,
+        "quick_rates_order": null
       }
     ]
     ```
