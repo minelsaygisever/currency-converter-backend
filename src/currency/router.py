@@ -60,8 +60,14 @@ async def get_rates(
 
 
     rows = session.exec(
-        select(Currency).where(Currency.active == True).order_by(Currency.code)
+        select(Currency)
+        .where(Currency.active == True)
+        .order_by(
+            Currency.quick_rates_order.asc().nullslast(), 
+            Currency.code.asc()
+        )
     ).all()
+    
     to_symbols = [c.code for c in rows if c.code != base_sym]
 
     if not to_symbols:
