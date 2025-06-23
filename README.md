@@ -92,7 +92,7 @@ All endpoints are prefixed with `/api/v1`.
     -   `X-Device-ID` (required): The unique identifier for the client device.
 -   **Parameters:**
     -   `from` (required): The source currency code (e.g., `USD`).
--   **Sample Request:** `http://api.minelsaygisever.com/currency-converter/v1/rates?from=USD`
+-   **Sample Request:** `https://api.minelsaygisever.com/currency-converter/v1/rates?from=USD`
 -   **Sample Response:**
     ```json
     {
