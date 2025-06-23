@@ -43,7 +43,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-app.include_router(currency_router, prefix="/api/v1")
+app.include_router(currency_router, prefix="/currency-converter/v1")
 
 @app.get("/", tags=["health"])
 def read_root():
