@@ -1,0 +1,75 @@
+{
+    "family": "currency-converter-service",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
+    "cpu": "256",
+    "memory": "512",
+    "executionRoleArn": "arn:aws:iam::173748330247:role/ecsTaskExecutionRole",
+    "containerDefinitions": [
+        {
+            "name": "currency-converter-backend",
+            "image": "173748330247.dkr.ecr.eu-central-1.amazonaws.com/currency-converter-backend",
+            "essential": true,
+            "portMappings": [
+                {
+                    "containerPort": 8000,
+                    "protocol": "tcp"
+                }
+            ],
+            "environment": [
+                {
+                    "name": "CACHE_TTL_SECONDS",
+                    "value": "3600"
+                }
+            ],
+            "secrets": [
+                {
+                    "name": "API_SECRET_KEY",
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:test/currency-converter/secrets-MVoW32:API_SECRET_KEY::"
+                },
+                {
+                    "name": "DB_HOST",
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:test/currency-converter/secrets-MVoW32:DB_HOST::"
+                },
+                {
+                    "name": "DB_NAME",
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:test/currency-converter/secrets-MVoW32:DB_NAME::"
+                },
+                {
+                    "name": "DB_PASSWORD",
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:test/currency-converter/secrets-MVoW32:DB_PASSWORD::"
+                },
+                {
+                    "name": "DB_PORT",
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:test/currency-converter/secrets-MVoW32:DB_PORT::"
+                },
+                {
+                    "name": "DB_USER",
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:test/currency-converter/secrets-MVoW32:DB_USER::"
+                },
+                {
+                    "name": "OPEN_EXCHANGE_RATES_API_KEY",
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:test/currency-converter/secrets-MVoW32:OPEN_EXCHANGE_RATES_API_KEY::"
+                },
+                {
+                    "name": "REDIS_HOST",
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:test/currency-converter/secrets-MVoW32:REDIS_HOST::"
+                },
+                {
+                    "name": "REDIS_PORT",
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:test/currency-converter/secrets-MVoW32:REDIS_PORT::"
+                }
+            ],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/currency-converter-service",
+                    "awslogs-region": "eu-central-1",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            }
+        }
+    ]
+}
