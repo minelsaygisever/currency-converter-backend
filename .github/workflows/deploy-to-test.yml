@@ -10,8 +10,8 @@ env:
   ECR_REPOSITORY: currency-converter-backend
   ECS_SERVICE: currency-converter-service-test
   ECS_CLUSTER: currency-converter-cluster
-  ECS_TASK_DEFINITION: currency-converter-service 
   CONTAINER_NAME: currency-converter-backend
+  TASK_DEFINITION_FILE: task-definition.json 
 
 jobs:
   deploy:
@@ -44,19 +44,11 @@ jobs:
         docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${IMAGE_TAG}
         echo "image=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${IMAGE_TAG}" >> $GITHUB_OUTPUT
 
-    - name: Download task definition
-      run: |
-        aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_DEFINITION }} --query taskDefinition > task-definition.json
-
-    - name: Clean up the task definition file
-      run: |
-        jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy, .tags, .enableEcsManagedTags, .deregisteredAt)' task-definition.json > task-definition-clean.json
-
-    - name: Fill in new image ID in the task definition
+    - name: Render Amazon ECS task definition
       id: task-def
       uses: aws-actions/amazon-ecs-render-task-definition@v1 
       with:
-        task-definition: task-definition-clean.json
+        task-definition: ${{ env.TASK_DEFINITION_FILE }}
         container-name: ${{ env.CONTAINER_NAME }}
         image: ${{ steps.build-image.outputs.image }}
 
