@@ -1,23 +1,23 @@
-name: Deploy to Test Environment
+name: Deploy to Production Environment
 
 on:
   push:
     branches:
-      - develop
+      - main
 
 env:
   AWS_REGION: eu-central-1
   ECR_REPOSITORY: currency-converter-backend
-  ECS_SERVICE: currency-converter-service-test
+  ECS_SERVICE: currency-converter-service
   ECS_CLUSTER: currency-converter-cluster
   CONTAINER_NAME: currency-converter-backend
-  TASK_DEFINITION_FILE: task-definition-test.json 
+  TASK_DEFINITION_FILE: task-definition-prod.json
 
 jobs:
   deploy:
-    name: Build and Deploy
+    name: Build and Deploy to Production
     runs-on: ubuntu-latest
-    environment: test
+    environment: production
 
     permissions:
       contents: read
@@ -30,7 +30,7 @@ jobs:
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        role-to-assume: ${{ secrets.AWS_TEST_ROLE_ARN }}
+        role-to-assume: ${{ secrets.AWS_PROD_ROLE_ARN }} 
         aws-region: ${{ env.AWS_REGION }}
 
     - name: Login to Amazon ECR
@@ -40,7 +40,7 @@ jobs:
     - name: Build, tag, and push image to Amazon ECR
       id: build-image
       run: |
-        IMAGE_TAG=$(echo "${{ github.sha }}" | cut -c1-7)
+        IMAGE_TAG=prod-${{ github.sha }}
         docker build -t ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${IMAGE_TAG} .
         docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${IMAGE_TAG}
         echo "image=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${IMAGE_TAG}" >> $GITHUB_OUTPUT

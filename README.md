@@ -28,6 +28,14 @@ This project is a simple and effective RESTful API service that provides real-ti
 -   **Asynchronous HTTP Requests:** HTTPX
 -   **Testing:** Pytest, pytest-mock, pytest-asyncio
 
+## 🔄 CI/CD - Continuous Integration & Deployment
+This project utilizes GitHub Actions for fully automated CI/CD pipelines for two separate environments.
+
+-   **Test Environment:** Every push to the develop branch automatically builds, tests (if tests are added), and deploys the application to the AWS ECS test environment.
+-   **Production Environment:** Merging changes from develop into the main branch triggers a deployment to the production environment on AWS ECS.
+
+All deployments are managed via Infrastructure as Code principles using task definition files stored within this repository.
+
 ## 📖 API Endpoints
 
 All endpoints are prefixed with `/api/v1`.
