@@ -28,7 +28,7 @@
             "secrets": [
                 {
                     "name": "DB_HOST",
-                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/database-OpxTPa:host::"
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/database-OpXTPa:host::"
                 },
                 {
                     "name": "DB_USER",
