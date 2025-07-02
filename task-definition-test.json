@@ -1,5 +1,5 @@
 {
-    "family": "currency-converter-service",
+    "family": "currency-converter-service-test",
     "networkMode": "awsvpc",
     "requiresCompatibilities": [
         "FARGATE"
@@ -65,7 +65,7 @@
             "logConfiguration": {
                 "logDriver": "awslogs",
                 "options": {
-                    "awslogs-group": "/ecs/currency-converter-service",
+                    "awslogs-group": "/ecs/currency-converter-service-test",
                     "awslogs-region": "eu-central-1",
                     "awslogs-stream-prefix": "ecs"
                 }

@@ -1,0 +1,75 @@
+{
+    "family": "currency-converter-service",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
+    "cpu": "256",
+    "memory": "512",
+    "executionRoleArn": "arn:aws:iam::173748330247:role/ecsTaskExecutionRole",
+    "containerDefinitions": [
+        {
+            "name": "currency-converter-backend",
+            "image": "will-be-filled-by-cicd",
+            "essential": true,
+            "portMappings": [
+                {
+                    "containerPort": 8000,
+                    "protocol": "tcp"
+                }
+            ],
+            "environment": [
+                {
+                    "name": "CACHE_TTL_SECONDS",
+                    "value": "3600"
+                }
+            ],
+            "secrets": [
+                {
+                    "name": "DB_HOST",
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/database-OpxTPa:host::"
+                },
+                {
+                    "name": "DB_USER",
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/database-OpxTPa:username::"
+                },
+                {
+                    "name": "DB_PASSWORD",
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/database-OpxTPa:password::"
+                },
+                {
+                    "name": "DB_PORT",
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/database-OpxTPa:port::"
+                },
+                {
+                    "name": "DB_NAME",
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/database-OpxTPa:dbname::"
+                },
+                {
+                    "name": "REDIS_HOST",
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/application-kpPuQi:REDIS_HOST::"
+                },
+                {
+                    "name": "REDIS_PORT",
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/application-kpPuQi:REDIS_PORT::"
+                },
+                {
+                    "name": "API_SECRET_KEY",
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/application-kpPuQi:API_SECRET_KEY::"
+                },
+                {
+                    "name": "OPEN_EXCHANGE_RATES_API_KEY",
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/application-kpPuQi:OPEN_EXCHANGE_RATES_API_KEY::"
+                }
+            ],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/currency-converter-service",
+                    "awslogs-region": "eu-central-1",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            }
+        }
+    ]
+}
