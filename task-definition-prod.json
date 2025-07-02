@@ -32,19 +32,19 @@
                 },
                 {
                     "name": "DB_USER",
-                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/database-OpxTPa:username::"
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/database-OpXTPa:username::"
                 },
                 {
                     "name": "DB_PASSWORD",
-                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/database-OpxTPa:password::"
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/database-OpXTPa:password::"
                 },
                 {
                     "name": "DB_PORT",
-                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/database-OpxTPa:port::"
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/database-OpXTPa:port::"
                 },
                 {
                     "name": "DB_NAME",
-                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/database-OpxTPa:dbname::"
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/database-OpXTPa:dbname::"
                 },
                 {
                     "name": "REDIS_HOST",
