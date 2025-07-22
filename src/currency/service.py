@@ -90,6 +90,6 @@ async def get_conversion_rates(from_sym: str, to_syms: List[str]) -> Dict[str, f
         # Cross rate calculation
         # EUR -> TRY = (USD -> TRY) / (USD -> EUR)
         cross_rate = usd_to_to_rate / usd_to_from_rate
-        cross_rates[to_sym_upper] = round(cross_rate, 6)
+        cross_rates[to_sym_upper] = cross_rate
         
     return cross_rates
