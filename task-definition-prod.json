@@ -22,7 +22,7 @@
             "environment": [
                 {
                     "name": "CACHE_TTL_SECONDS",
-                    "value": "60"
+                    "value": "3600"
                 }
             ],
             "secrets": [
