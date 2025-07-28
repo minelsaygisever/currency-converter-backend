@@ -25,7 +25,8 @@ async def _get_all_rates_from_usd() -> Dict[str, float]:
     if redis_client:
         cached_data = redis_client.get(cache_key)
         if cached_data:
-            logger.info(f"CACHE HIT: Found all rates under key '{cache_key}'.")
+            remaining_ttl = redis_client.ttl(cache_key)
+            logger.info(f"CACHE HIT: Found all rates under key '{cache_key}',remaining TTL={remaining_ttl}s")
             return json.loads(cached_data)
 
     # 2. Cache miss, pull it from API.
@@ -55,7 +56,8 @@ async def _get_all_rates_from_usd() -> Dict[str, float]:
     # 3. Save the new result to redis
     if redis_client and rates:
         redis_client.set(cache_key, json.dumps(rates), ex=settings.CACHE_TTL_SECONDS)
-        logger.info(f"CACHE SET: Saved all rates to key '{cache_key}'.")
+        set_ttl = redis_client.ttl(cache_key)
+        logger.info(f"CACHE SET: Saved all rates to key '{cache_key}', ttl after set={set_ttl}s (expected={settings.CACHE_TTL_SECONDS}s)")
         
     return rates
 
