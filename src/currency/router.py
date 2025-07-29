@@ -1,9 +1,13 @@
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, HTTPException, Query, Depends, Header
 from fastapi.concurrency import run_in_threadpool
 from sqlmodel import Session, select
-from typing import List
+from typing import List, Optional
 
-from .models import Currency
+from sqlalchemy.orm import aliased
+from sqlalchemy.sql.expression import and_
+from sqlalchemy.sql.functions import coalesce
+
+from .models import Currency, CurrencyLocalization
 from .schemas import BatchConversionResponse, CurrencyRead, RateItem
 from .service import get_conversion_rates
 from .exceptions import CurrencyAPIError
@@ -17,23 +21,61 @@ router = APIRouter(
     dependencies=[Depends(verify_api_key), Depends(manual_rate_limiter)] 
 )
 
+# --- A helper dependency to get the language ---
+def get_language(accept_language: Optional[str] = Header(None)) -> str:
+    """
+    Parses the primary language from the 'Accept-Language' header.
+    If the header is missing or empty, it returns 'en' by default.
+    """
+    if accept_language:
+        # Simplifies a header like 'tr-TR,tr;q=0.9,en-US;q=0.8' to 'tr'.
+        return accept_language.split(',')[0].split('-')[0].lower()
+    return "en" # Default language
+
 # --- Endpoint for Currencies Resource ---
 @router.get("/currencies", response_model=List[CurrencyRead], response_model_exclude_defaults=False)
-async def get_all_active_currencies(session: Session = Depends(get_session)):
+async def get_all_active_currencies(
+    session: Session = Depends(get_session),
+    lang: str = Depends(get_language)):
     """
-    Returns a list of all currencies that are marked as active in the system.
+    Returns a list of all active currencies with names localized based on the 'Accept-Language' header.
+    Defaults to English if the header is not provided or the language is not supported.
     """
-    def get_all_currencies_from_db():
-        return session.exec(
-            select(Currency)
+
+    loc_preferred = aliased(CurrencyLocalization, name="loc_preferred")
+    loc_default = aliased(CurrencyLocalization, name="loc_default")
+
+    def get_localized_currencies_from_db():
+        statement = (
+            select(
+                Currency.code,
+                Currency.symbol,
+                Currency.active,
+                Currency.flag_url,
+                Currency.decimal_places,
+                Currency.quick_rates,
+                Currency.quick_rates_order,
+                coalesce(loc_preferred.name, loc_default.name, Currency.code).label("name")
+            )
+            .select_from(Currency)
+            .outerjoin(loc_preferred, and_(
+                loc_preferred.currency_code == Currency.code,
+                loc_preferred.language_code == lang
+            ))
+            .outerjoin(loc_default, and_(
+                loc_default.currency_code == Currency.code,
+                loc_default.language_code == 'en'
+            ))
             .where(Currency.active == True)
             .order_by(
-                Currency.quick_rates_order.asc().nullslast(), 
+                Currency.quick_rates_order.asc().nullslast(),
                 Currency.code.asc()
             )
-        ).all()
+        )
+        results = session.exec(statement).all()
+        return [CurrencyRead.model_validate(row) for row in results]
 
-    currencies = await run_in_threadpool(get_all_currencies_from_db)
+    currencies = await run_in_threadpool(get_localized_currencies_from_db)
     
     return currencies
 
