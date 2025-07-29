@@ -57,7 +57,7 @@ async def get_all_active_currencies(
                 Currency.quick_rates_order,
                 coalesce(loc_preferred.name, loc_default.name, Currency.code).label("name")
             )
-            .select_from(Currency) # Ana tablomuzun Currency olduğunu belirtiyoruz.
+            .select_from(Currency)
             .outerjoin(loc_preferred, and_(
                 loc_preferred.currency_code == Currency.code,
                 loc_preferred.language_code == lang
