@@ -24,13 +24,25 @@ router = APIRouter(
 # --- A helper dependency to get the language ---
 def get_language(accept_language: Optional[str] = Header(None)) -> str:
     """
-    Parses the primary language from the 'Accept-Language' header.
-    If the header is missing or empty, it returns 'en' by default.
+    It parses the language from the 'Accept-Language' heading.
+    It handles special cases of Chinese such as 'zh-Hans' and 'zh-Hant'.
+    eg. tr-TR,tr;q=0.9,en-US;q=0.8
     """
-    if accept_language:
-        # Simplifies a header like 'tr-TR,tr;q=0.9,en-US;q=0.8' to 'tr'.
-        return accept_language.split(',')[0].split('-')[0].lower()
-    return "en" # Default language
+    if not accept_language:
+        return "en" # Default
+
+    #'zh-Hans-CN,zh-Hans;q=0.9' -> 'zh-hans-cn'
+    first_preference = accept_language.split(',')[0].lower()
+    
+    # Check Chinese special cases
+    if first_preference.startswith("zh-hans"):
+        return "zh-Hans"
+    
+    if first_preference.startswith("zh-hant"):
+        return "zh-Hant" 
+    
+    # just get the main language code tr-TR -> tr
+    return first_preference.split('-')[0]
 
 # --- Endpoint for Currencies Resource ---
 @router.get("/currencies", response_model=List[CurrencyRead], response_model_exclude_defaults=False)
