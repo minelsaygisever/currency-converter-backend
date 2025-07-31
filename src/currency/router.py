@@ -37,9 +37,14 @@ def get_language(accept_language: Optional[str] = Header(None)) -> str:
     # Check Chinese special cases
     if first_preference.startswith("zh-hans"):
         return "zh-Hans"
-    
     if first_preference.startswith("zh-hant"):
         return "zh-Hant" 
+    
+    # Portuguese special cases
+    if first_preference.startswith("pt-br"):
+        return "pt-BR"
+    if first_preference.startswith("pt-pt"):
+        return "pt-PT"
     
     # just get the main language code tr-TR -> tr
     return first_preference.split('-')[0]
