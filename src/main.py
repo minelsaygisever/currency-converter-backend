@@ -3,6 +3,7 @@ import logging
 from datetime import datetime
 
 from src.currency.router import router as currency_router
+from src.rate_history.router import router as history_router
 from src.core.database import init_db
 from src.core.redis_client import get_redis_client
 
@@ -44,6 +45,7 @@ app = FastAPI(
 )
 
 app.include_router(currency_router, prefix="/currency-converter/v1")
+app.include_router(history_router, prefix="/currency-converter/v1")
 
 @app.get("/", tags=["health"])
 def read_root():

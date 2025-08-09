@@ -1,15 +1,21 @@
-FROM python:3.11
+FROM python:3.11-slim as builder
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --upgrade pip && \
+    pip wheel --no-cache-dir --wheel-dir /app/wheels -r requirements.txt
 
-RUN apt-get update && apt-get install -y --no-install-recommends libpq5 && rm -rf /var/lib/apt/lists/*
+# ---
 
+FROM python:3.11-slim
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN addgroup --system app && adduser --system --group app
+USER app
 
-COPY src/ ./src/
+COPY --from=builder /app/wheels /wheels
 
-ENV PYTHONPATH=/app
-EXPOSE 8000
+COPY . .
+
+RUN pip install --no-cache-dir /wheels/*
 
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
