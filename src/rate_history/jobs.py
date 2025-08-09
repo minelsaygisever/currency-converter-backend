@@ -61,7 +61,7 @@ async def run_hourly_job():
         # Retention: Delete hourly data older than 30 days
         thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
         stmt = text("DELETE FROM currency_rate_snapshots WHERE frequency='hourly' AND effective_at < :cutoff")
-        result = session.exec(stmt, {"cutoff": thirty_days_ago})
+        result = session.exec(stmt, params={"cutoff": thirty_days_ago})
         session.commit()
         if result.rowcount > 0:
             logger.info(f"Deleted {result.rowcount} old hourly snapshots.")
@@ -119,7 +119,7 @@ async def run_daily_job():
         five_years_ago = utc_now - timedelta(days=5*365)
 
         stmt = text("DELETE FROM currency_rate_snapshots WHERE frequency='daily' AND effective_at < :cutoff")
-        result = session.exec(stmt, {"cutoff": five_years_ago})
+        result = session.exec(stmt, params={"cutoff": five_years_ago})
         
         session.commit()
         if result.rowcount > 0:
