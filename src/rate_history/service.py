@@ -31,10 +31,11 @@ class HistoricalDataService:
 
         logger.info(f"RAW CACHE MISS for key: {cache_key}. Fetching from DB.")
         
-        now = datetime.now(timezone.utc)
-        start_date = now - timedelta(days=days_to_fetch)
+        end_date = datetime.now(timezone.utc).replace(minute=59, second=59, microsecond=999999)
+        start_date = end_date - timedelta(days=days_to_fetch)
+
         db_rows = repo.get_range(
-            self.session, frequency=frequency, start=start_date, end=now, base_currency="USD"
+            self.session, frequency=frequency, start=start_date, end=end_date, base_currency="USD"
         )
         
         if self.redis and db_rows:
