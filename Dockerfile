@@ -13,15 +13,15 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-RUN addgroup --system app && adduser --system --group app
-USER app
-
 COPY --from=builder /app/wheels /wheels
+RUN pip install --no-cache-dir /wheels/*
 
 COPY . .
 
-ENV PATH="/home/app/.local/bin:${PATH}"
+RUN addgroup --system app && adduser --system --group app
 
-RUN pip install --user --no-cache-dir /wheels/*
+RUN chown -R app:app /app
+
+USER app
 
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
