@@ -60,89 +60,13 @@ class HistoricalDataService:
 
         return db_rows
 
-
-    def _aggregate_weekly_relative(
-        self, daily_data: List[CurrencyRateSnapshot], request_time: datetime
-    ) -> List[CurrencyRateSnapshot]:
-        """
-        Aggregates daily data into weekly points, where 'week end' is relative
-        to the day of the request.
-        """
-        target_weekday = request_time.weekday() # Monday is 0 and Sunday is 6
-        weekly_points = {}
-        for snapshot in reversed(daily_data):
-            week_identifier = snapshot.effective_at.strftime('%Y-%U')
-            if week_identifier not in weekly_points and snapshot.effective_at.weekday() == target_weekday:
-                weekly_points[week_identifier] = snapshot
+    def get_historical_data(self, range_str: str, base_currency: str = "USD") -> List[CurrencyRateSnapshot]:
+        frequency = "hourly" if range_str in ("1d", "1w") else "daily"
+        days = {"1d": 1, "1w": 7, "1m": 30, "6m": 182, "1y": 365, "5y": 365*5}.get(range_str, 30)
         
-        # weekly_points'in value'larını alıp tarihe göre sırala
-        return sorted(list(weekly_points.values()), key=lambda x: x.effective_at)
-
-
-    def _aggregate_8hourly_relative(
-        self, hourly_data: List[CurrencyRateSnapshot], request_time: datetime
-    ) -> List[CurrencyRateSnapshot]:
-        """
-        Picks hourly snapshots at roughly 8-hour intervals, relative to the request time.
-        """
-        points = []
-        for i in range(21): 
-            target_time = request_time - timedelta(hours=i * 8)
-            closest_snapshot = min(
-                hourly_data, 
-                key=lambda x: abs(x.effective_at - target_time),
-                default=None
-            )
-            if closest_snapshot:
-                points.append(closest_snapshot)
-        
-        unique_points = sorted(
-            list({p.id: p for p in points}.values()),
-            key=lambda x: x.effective_at
+        raw_snapshots = self._get_raw_snapshots_with_cache(
+            frequency=frequency,
+            days_to_fetch=days
         )
-        return unique_points
-
-    def get_historical_data(
-        self, from_symbol: str, to_symbol: str, range_str: str
-    ) -> HistoricalDataResponse:
         
-        request_time = datetime.now(timezone.utc)
-        from_upper = from_symbol.upper()
-        to_upper = to_symbol.upper()
-        
-        aggregated_snapshots = []
-        final_frequency = ""
-
-        if range_str == "1w":
-            final_frequency = "8-hourly"
-            hourly_snapshots = self._get_raw_snapshots_with_cache(frequency="hourly", days_to_fetch=7)
-            aggregated_snapshots = self._aggregate_8hourly_relative(hourly_snapshots, request_time)
-
-        elif range_str == "5y":
-            final_frequency = "weekly"
-            daily_snapshots = self._get_raw_snapshots_with_cache(frequency="daily", days_to_fetch=5*365)
-            aggregated_snapshots = self._aggregate_weekly_relative(daily_snapshots, request_time)
-            
-        else:
-            final_frequency = "daily" if range_str != "1d" else "hourly"
-            days = {"1d": 1, "1m": 30, "6m": 182, "1y": 365}.get(range_str, 30)
-            aggregated_snapshots = self._get_raw_snapshots_with_cache(frequency=final_frequency, days_to_fetch=days)
-
-
-        points: List[HistoricalDataPoint] = []
-        for row in aggregated_snapshots:
-            if from_upper in row.rates and to_upper in row.rates:
-                from_rate = row.rates.get(from_upper, 1.0)
-                if from_rate == 0: continue
-                
-                cross_rate = row.rates[to_upper] / from_rate
-                points.append(HistoricalDataPoint(ts=row.effective_at, rate=cross_rate))
-        
-        return HistoricalDataResponse(
-            **{
-                "from": from_upper,
-                "to": to_upper,
-                "frequency": final_frequency,
-                "points": points,
-            }
-        )
+        return raw_snapshots
