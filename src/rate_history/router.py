@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session
 
-from rate_history.schemas import HistoricalSnapshotResponse
+from .schemas import HistoricalSnapshotResponse
 from src.core.database import get_session
 from src.core.security import verify_api_key
 from .service import HistoricalDataService
