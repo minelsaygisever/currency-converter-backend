@@ -3,7 +3,8 @@
 import json
 import logging
 from datetime import datetime, timezone, timedelta
-from sqlmodel import Session, select
+from sqlmodel import select
+from sqlalchemy import text
 
 from src.core.database import get_session
 from src.core.redis_client import get_redis_client
@@ -59,10 +60,8 @@ async def run_hourly_job():
         
         # Retention: Delete hourly data older than 30 days
         thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
-        result = session.exec(
-            "DELETE FROM currency_rate_snapshots WHERE frequency='hourly' AND effective_at < :cutoff",
-            {"cutoff": thirty_days_ago}
-        )
+        stmt = text("DELETE FROM currency_rate_snapshots WHERE frequency='hourly' AND effective_at < :cutoff")
+        result = session.exec(stmt, {"cutoff": thirty_days_ago})
         session.commit()
         if result.rowcount > 0:
             logger.info(f"Deleted {result.rowcount} old hourly snapshots.")
@@ -118,10 +117,10 @@ async def run_daily_job():
         
         # Retention: Delete daily data older than 5 years
         five_years_ago = utc_now - timedelta(days=5*365)
-        result = session.exec(
-            "DELETE FROM currency_rate_snapshots WHERE frequency='daily' AND effective_at < :cutoff",
-            {"cutoff": five_years_ago}
-        )
+
+        stmt = text("DELETE FROM currency_rate_snapshots WHERE frequency='daily' AND effective_at < :cutoff")
+        result = session.exec(stmt, {"cutoff": five_years_ago})
+        
         session.commit()
         if result.rowcount > 0:
             logger.info(f"Deleted {result.rowcount} old daily snapshots.")
