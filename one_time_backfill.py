@@ -5,9 +5,9 @@ import time
 import requests
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import List
+from typing import List, Set
 
-from sqlalchemy import create_engine, Column, DateTime, Integer, String
+from sqlalchemy import create_engine, Column, DateTime, Integer, String, func
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import IntegrityError
@@ -30,7 +30,6 @@ if not all([DB_USER, DB_PASSWORD, DB_HOST, DB_NAME, API_KEY_1, API_KEY_2]):
 DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 API_KEYS = [API_KEY_1, API_KEY_2]
 
-# --- Sabitler ---
 BASE_URL = "https://openexchangerates.org/api/historical/"
 BASE_CURRENCY = "USD"
 START_DATE = datetime(2020, 8, 10)
@@ -51,6 +50,16 @@ def fetch_historical_data():
     engine = create_engine(DATABASE_URL)
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     db_session = SessionLocal()
+
+    logger.info("Veritabanında zaten mevcut olan günler kontrol ediliyor...")
+    existing_dates_query = db_session.query(
+        func.date(CurrencyRateSnapshot.effective_at)
+    ).filter(
+        CurrencyRateSnapshot.frequency == 'daily'
+    )
+    # Set, bir elemanın varlığını kontrol etmeyi çok daha hızlı hale getirir.
+    existing_dates: Set[datetime.date] = {d[0] for d in existing_dates_query.all()}
+    logger.info(f"{len(existing_dates)} adet gün veritabanında zaten mevcut.")
     
     current_date = START_DATE
     day_count = 0
@@ -60,6 +69,11 @@ def fetch_historical_data():
 
     while current_date <= END_DATE:
         date_str = current_date.strftime('%Y-%m-%d')
+
+        if current_date.date() in existing_dates:
+            current_date += timedelta(days=1)
+            continue 
+
         api_key_to_use = API_KEYS[day_count % len(API_KEYS)]
         
         url = f"{BASE_URL}{date_str}.json?app_id={api_key_to_use}&base={BASE_CURRENCY}"
