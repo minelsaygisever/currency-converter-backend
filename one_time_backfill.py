@@ -4,7 +4,7 @@ import os
 import time
 import requests
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List
 
 from sqlalchemy import create_engine, Column, DateTime, Integer, String
@@ -73,7 +73,7 @@ def fetch_historical_data():
 
             new_snapshot = CurrencyRateSnapshot(
                 frequency="daily",
-                effective_at=current_date.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timedelta(0)),
+                effective_at=current_date.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc),
                 base_currency=data.get("base", BASE_CURRENCY),
                 rates=data.get("rates", {})
             )
