@@ -45,9 +45,19 @@ class HistoricalDataService:
             logger.info(f"RAW CACHE SET for key: {cache_key} with TTL: {ttl_seconds}s")
 
         return db_rows
+    
+    def _aggregate_monthly(self, daily_data: List[CurrencyRateSnapshot]) -> List[CurrencyRateSnapshot]:
+        """Aggregates daily data to monthly by taking the last day of each month."""
+        monthly_points = {}
+        for snapshot in daily_data:
+            month_identifier = snapshot.effective_at.strftime('%Y-%m')
+            monthly_points[month_identifier] = snapshot
+        
+        return sorted(list(monthly_points.values()), key=lambda x: x.effective_at)
+
 
     def _aggregate_weekly(self, daily_data: List[CurrencyRateSnapshot]) -> List[CurrencyRateSnapshot]:
-        """Günlük veriyi, her haftanın son gününü alarak haftalığa seyreltir."""
+        """Aggregates daily data to weekly by taking the last day of each week."""
         weekly_points = {}
         for snapshot in daily_data:
             week_identifier = snapshot.effective_at.strftime('%Y-%U')
@@ -56,7 +66,7 @@ class HistoricalDataService:
         return sorted(list(weekly_points.values()), key=lambda x: x.effective_at)
 
     def _aggregate_8hourly(self, hourly_data: List[CurrencyRateSnapshot]) -> List[CurrencyRateSnapshot]:
-        """Saatlik veriyi, her 8 saatlik dilimin son kaydını alarak seyreltir."""
+        """Aggregates hourly data by taking the last record of each 8-hour period."""
         eight_hourly_points = {}
         for snapshot in hourly_data:
             day = snapshot.effective_at.strftime('%Y-%m-%d')
@@ -65,6 +75,21 @@ class HistoricalDataService:
             eight_hourly_points[slot_identifier] = snapshot
             
         return sorted(list(eight_hourly_points.values()), key=lambda x: x.effective_at)
+    
+    def _aggregate_every_n_days(self, daily_data: List[CurrencyRateSnapshot], n: int) -> List[CurrencyRateSnapshot]:
+        """Aggregates daily data by taking the last day of each N-day period."""
+        if n <= 1:
+            return daily_data
+            
+        aggregated_points = {}
+        epoch = datetime(1970, 1, 1, tzinfo=timezone.utc)
+        for snapshot in daily_data:
+            days_since_epoch = (snapshot.effective_at - epoch).days
+            period_identifier = days_since_epoch // n
+            aggregated_points[period_identifier] = snapshot
+        
+        return sorted(list(aggregated_points.values()), key=lambda x: x.effective_at)
+
 
     def get_historical_data(self, range_str: str, base_currency: str = "USD") -> List[CurrencyRateSnapshot]:
         frequency = "hourly" if range_str in ("1d", "1w") else "daily"
@@ -75,12 +100,22 @@ class HistoricalDataService:
             days_to_fetch=days
         )
         
-        if range_str == "1w":
+        if range_str == "5y":
+            logger.info(f"Aggregating {len(raw_snapshots)} daily points to monthly for '5y' range.")
+            return self._aggregate_monthly(raw_snapshots)
+            
+        elif range_str == "1y":
+            logger.info(f"Aggregating {len(raw_snapshots)} daily points to weekly for '1y' range.")
+            return self._aggregate_weekly(raw_snapshots)
+
+        elif range_str == "6m":
+            logger.info(f"Aggregating {len(raw_snapshots)} daily points to every 2 days for '6m' range.")
+            return self._aggregate_every_n_days(raw_snapshots, n=2)
+        
+        elif range_str == "1w":
             logger.info(f"Aggregating {len(raw_snapshots)} hourly points to 8-hourly for '1w' range.")
             return self._aggregate_8hourly(raw_snapshots)
-            
-        if range_str == "5y":
-            logger.info(f"Aggregating {len(raw_snapshots)} daily points to weekly for '5y' range.")
-            return self._aggregate_weekly(raw_snapshots)
         
-        return raw_snapshots
+        else:
+            return raw_snapshots
+        
