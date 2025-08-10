@@ -25,7 +25,7 @@ API_KEY_1 = os.getenv("OXR_API_KEY_1")
 API_KEY_2 = os.getenv("OXR_API_KEY_2")
 
 if not all([DB_USER, DB_PASSWORD, DB_HOST, DB_NAME, API_KEY_1, API_KEY_2]):
-    raise ValueError("Gerekli ortam değişkenleri (DB_*, OXR_API_KEY_*) ayarlanmamış!")
+    raise ValueError("Required environment variables (DB_*, OXR_API_KEY_*) are not set!")
     
 DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 API_KEYS = [API_KEY_1, API_KEY_2]
@@ -51,15 +51,14 @@ def fetch_historical_data():
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     db_session = SessionLocal()
 
-    logger.info("Veritabanında zaten mevcut olan günler kontrol ediliyor...")
+    logger.info("Checking for existing daily records in the database...")
     existing_dates_query = db_session.query(
         func.date(CurrencyRateSnapshot.effective_at)
     ).filter(
         CurrencyRateSnapshot.frequency == 'daily'
     )
-    # Set, bir elemanın varlığını kontrol etmeyi çok daha hızlı hale getirir.
     existing_dates: Set[datetime.date] = {d[0] for d in existing_dates_query.all()}
-    logger.info(f"{len(existing_dates)} adet gün veritabanında zaten mevcut.")
+    logger.info(f"Found {len(existing_dates)} existing daily records in the database.")
     
     current_date = START_DATE
     day_count = 0
@@ -78,7 +77,7 @@ def fetch_historical_data():
         
         url = f"{BASE_URL}{date_str}.json?app_id={api_key_to_use}&base={BASE_CURRENCY}"
         
-        logger.info(f"Fetching data for {date_str}...")
+        logger.info(f"Fetching data for missing date: {date_str}...")
         
         try:
             response = requests.get(url, timeout=15)
@@ -109,7 +108,7 @@ def fetch_historical_data():
                             logger.warning(f"Duplicate entry for {snapshot.effective_at}. Skipping.")
                             db_session.rollback()
                 finally:
-                    snapshot_batch = [] # Batch'i temizle
+                    snapshot_batch = []
 
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to fetch data for {date_str}. Error: {e}")

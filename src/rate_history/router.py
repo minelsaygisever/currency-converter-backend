@@ -3,17 +3,24 @@
 from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session
 
+import logging
+
 from .schemas import HistoricalSnapshotResponse
 from src.core.database import get_session
 from src.core.security import verify_api_key
 from .service import HistoricalDataService
 from .jobs import run_hourly_job, run_daily_job 
 
+from src.core.redis_client import get_redis_client
+import redis 
+
 router = APIRouter(
     prefix="/history",
     tags=["History"],
     dependencies=[Depends(verify_api_key)] 
 )
+
+logger = logging.getLogger(__name__)
 
 # Dependency to provide the service
 def get_historical_service(session: Session = Depends(get_session)) -> HistoricalDataService:
@@ -30,6 +37,29 @@ def get_historical_snapshots(
     The client is responsible for calculating the cross-rates.
     """
     return service.get_historical_data(range_str=range_, base_currency=base)
+
+@router.post("/admin/clear-cache", summary="Clear a specific cache key in Redis")
+def clear_specific_cache(
+    cache_key: str = Query(..., description="The exact cache key to delete"),
+    redis_client: redis.Redis = Depends(get_redis_client),
+    _ = Depends(verify_api_key) 
+):
+    """
+    Deletes a specific key from the Redis cache. 
+    USE WITH CAUTION.
+    """
+    logger.info(f"Attempting to delete cache key: {cache_key}")
+    deleted_count = redis_client.delete(cache_key)
+    
+    if deleted_count > 0:
+        message = f"Successfully deleted cache key: '{cache_key}'"
+        logger.info(message)
+        return {"status": "success", "message": message}
+    else:
+        message = f"Cache key not found or already deleted: '{cache_key}'"
+        logger.warning(message)
+        return {"status": "not_found", "message": message}
+
 
 # --- Manual Job Triggers ---
 
