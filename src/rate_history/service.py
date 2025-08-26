@@ -11,7 +11,7 @@ from sqlmodel import Session
 from . import repo
 from src.core.redis_client import get_redis_client
 from .models import CurrencyRateSnapshot
-from .schemas import HistoricalRateData
+from .schemas import HistoricalRatesResponse
 
 
 logger = logging.getLogger(__name__)
@@ -130,10 +130,9 @@ class HistoricalDataService:
         return raw_snapshots
         
     
-    def get_rate_for_date(self, date_str: str, from_code: str, to_code: str) -> HistoricalRateData:
+    def get_rate_for_date(self, date_str: str) -> HistoricalRatesResponse:
         """
-        Calculates the cross-rate for two currencies on a specific date
-        using the stored daily USD-based snapshots.
+        Fetches and returns the raw USD-based rates for a specific date.
         """
         try:
             target_date = datetime.strptime(date_str, "%Y-%m-%d").replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
@@ -145,27 +144,6 @@ class HistoricalDataService:
 
         if not snapshot:
             raise HTTPException(status_code=404, detail=f"No historical rate data found on or before {date_str}.")
-            
-        rates = snapshot.rates
-        
-        # Check if both currencies exist in the snapshot
-        if from_code not in rates or to_code not in rates:
-            missing = from_code if from_code not in rates else to_code
-            raise HTTPException(status_code=404, detail=f"Currency '{missing}' not found in historical data for {date_str}.")
-        
-        # Calculate cross-rate (e.g., EUR/TRY = (USD/TRY) / (USD/EUR))
-        usd_to_from_rate = rates[from_code]
-        usd_to_to_rate = rates[to_code]
-        
-        if usd_to_from_rate == 0:
-            raise HTTPException(status_code=500, detail=f"Invalid rate data for '{from_code}' (rate is zero).")
-        
-        cross_rate = usd_to_to_rate / usd_to_from_rate
-        
-        return HistoricalRateData(
-            from_currency=from_code,
-            to_currency=to_code,
-            date=date_str,
-            rate=cross_rate
-        )
+                    
+        return HistoricalRatesResponse(rates=snapshot.rates)
         

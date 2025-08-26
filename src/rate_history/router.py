@@ -41,18 +41,12 @@ def get_historical_snapshots(
 @router.get("/rate-on-date", response_model=HistoricalRateData)
 def get_rate_on_date(
     date: str = Query(..., description="Date in YYYY-MM-DD format"),
-    from_currency: str = Query(..., alias="from", description="Source currency code, e.g., EUR"),
-    to_currency: str = Query(..., alias="to", description="Target currency code, e.g., TRY"),
     service: HistoricalDataService = Depends(get_historical_service),
 ):
     """
     Returns the exchange rate between two currencies for a specific historical date.
     """
-    return service.get_rate_for_date(
-        date_str=date, 
-        from_code=from_currency, 
-        to_code=to_currency
-    )
+    return service.get_rate_for_date( date_str=date )
 
 @router.post("/admin/clear-cache", summary="Clear a specific cache key in Redis")
 def clear_specific_cache(

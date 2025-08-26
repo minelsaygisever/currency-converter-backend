@@ -13,8 +13,5 @@ class HistoricalSnapshot(BaseModel):
 
 HistoricalSnapshotResponse = List[HistoricalSnapshot]
 
-class HistoricalRateData(BaseModel):
-    from_currency: str
-    to_currency: str
-    date: str
-    rate: float
+class HistoricalRatesResponse(BaseModel):
+    rates: Dict[str, float]
