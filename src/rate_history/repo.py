@@ -88,3 +88,23 @@ def get_latest(session: Session, *, frequency: str, base_currency: str = "USD") 
         .limit(1)
     )
     return session.exec(stmt).first()
+
+def get_daily_snapshot_for_date(
+    session: Session, 
+    target_date: datetime, 
+    base_currency: str = "USD"
+) -> CurrencyRateSnapshot | None:
+    """
+    Fetches the daily snapshot for the exact target_date.
+    """
+    stmt = (
+        select(CurrencyRateSnapshot)
+        .where(
+            CurrencyRateSnapshot.frequency == "daily",
+            CurrencyRateSnapshot.base_currency == base_currency,
+            CurrencyRateSnapshot.effective_at == target_date,
+        )
+        .order_by(CurrencyRateSnapshot.effective_at.desc())
+        .limit(1)
+    )
+    return session.exec(stmt).first()

@@ -12,3 +12,9 @@ class HistoricalSnapshot(BaseModel):
         from_attributes = True
 
 HistoricalSnapshotResponse = List[HistoricalSnapshot]
+
+class HistoricalRateData(BaseModel):
+    from_currency: str
+    to_currency: str
+    date: str
+    rate: float
