@@ -5,7 +5,7 @@ from sqlmodel import Session
 
 import logging
 
-from .schemas import HistoricalSnapshotResponse, HistoricalRateData
+from .schemas import HistoricalSnapshotResponse, HistoricalRatesResponse
 from src.core.database import get_session
 from src.core.security import verify_api_key
 from .service import HistoricalDataService
@@ -38,7 +38,7 @@ def get_historical_snapshots(
     """
     return service.get_historical_data(range_str=range_, base_currency=base)
 
-@router.get("/rate-on-date", response_model=HistoricalRateData)
+@router.get("/rate-on-date", response_model=HistoricalRatesResponse)
 def get_rate_on_date(
     date: str = Query(..., description="Date in YYYY-MM-DD format"),
     service: HistoricalDataService = Depends(get_historical_service),
