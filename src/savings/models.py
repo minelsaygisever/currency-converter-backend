@@ -4,6 +4,7 @@ from sqlmodel import SQLModel, Field
 from uuid import UUID, uuid4
 from datetime import datetime
 import sqlalchemy as sa
+from sqlalchemy import func
 
 class SavingsEntry(SQLModel, table=True):
     __tablename__ = "savings_entries"
@@ -16,11 +17,18 @@ class SavingsEntry(SQLModel, table=True):
         sa_column=sa.Column(sa.DateTime(timezone=True), nullable=False)
     )
     created_at: datetime = Field(
-        default_factory=datetime.utcnow,
-        sa_column=sa.Column(sa.DateTime(timezone=True), nullable=False)
+        sa_column=sa.Column(
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=func.now()
+        )
     )
+
     updated_at: datetime = Field(
-        default_factory=datetime.utcnow,
-        sa_column=sa.Column(sa.DateTime(timezone=True), nullable=False),
-        sa_column_kwargs={"onupdate": datetime.utcnow}
+        sa_column=sa.Column(
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=func.now(),
+            onupdate=func.now()
+        )
     )
