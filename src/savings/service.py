@@ -14,7 +14,7 @@ from .models import SavingsEntry
 from .schemas import SavingsEntryCreate, SavingsEntryRead, SavingsEntryUpdate
 
 REVENUECAT_API_KEY = settings.REVENUECAT_API_KEY
-PRO_ENTITLEMENT_IDENTIFIER = "pro" 
+PRO_ENTITLEMENT_IDENTIFIER = "pro_access" 
 MAX_PRO_ENTRIES = 200
 MAX_FREE_ENTRIES = 1
 
@@ -33,10 +33,6 @@ class SavingsService:
                     return False
                 response.raise_for_status()
                 data = response.json()
-
-                print("--- 🕵️‍♂️ REVENUECAT API RESPONSE 🕵️‍♂️ ---")
-                print(json.dumps(data, indent=2))
-                print("------------------------------------")
                 
                 entitlements = data.get("subscriber", {}).get("entitlements", {})
                 pro_entitlement = entitlements.get(PRO_ENTITLEMENT_IDENTIFIER)
