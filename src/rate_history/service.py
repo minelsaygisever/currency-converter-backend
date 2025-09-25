@@ -142,8 +142,14 @@ class HistoricalDataService:
         # Find the daily snapshot for the requested date (or the closest one before it)
         snapshot = repo.get_daily_snapshot_for_date(self.session, target_date, "USD")
 
+        # If there is no daily data and the requested date is today, search for the latest hourly data
+        if not snapshot and target_date.date() == date_obj.today():
+            print(f"No daily snapshot for {date_str}, searching for latest hourly snapshot...")
+            snapshot = repo.get_latest_hourly_for_date(self.session, target_date, "USD")
+
+
         if not snapshot:
             raise HTTPException(status_code=404, detail=f"No historical rate data found on or before {date_str}.")
                     
         return HistoricalRatesResponse(rates=snapshot.rates)
-        
+    

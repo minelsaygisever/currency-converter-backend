@@ -108,3 +108,24 @@ def get_daily_snapshot_for_date(
         .limit(1)
     )
     return session.exec(stmt).first()
+
+def get_latest_hourly_for_date(
+    session: Session, 
+    target_date: datetime, 
+    base_currency: str = "USD"
+) -> CurrencyRateSnapshot | None:
+    start_of_day = target_date.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_of_day = target_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+    
+    stmt = (
+        select(CurrencyRateSnapshot)
+        .where(
+            CurrencyRateSnapshot.frequency == "hourly",
+            CurrencyRateSnapshot.base_currency == base_currency,
+            CurrencyRateSnapshot.effective_at >= start_of_day,
+            CurrencyRateSnapshot.effective_at <= end_of_day,
+        )
+        .order_by(CurrencyRateSnapshot.effective_at.desc())
+        .limit(1)
+    )
+    return session.exec(stmt).first()
