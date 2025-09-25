@@ -6,7 +6,7 @@ import logging
 from typing import List, Dict
 
 from src.core.config import settings
-from src.core.redis_client import get_redis_client # Import our Redis client
+from src.core.redis_client import get_redis_client 
 from .exceptions import CurrencyAPIError
 import httpx 
 
