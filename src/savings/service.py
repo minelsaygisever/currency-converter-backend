@@ -5,6 +5,7 @@ from fastapi import HTTPException
 from typing import List
 from uuid import UUID
 from datetime import datetime, timezone
+import json
 
 from . import repo
 
@@ -32,6 +33,10 @@ class SavingsService:
                     return False
                 response.raise_for_status()
                 data = response.json()
+
+                print("--- 🕵️‍♂️ REVENUECAT API RESPONSE 🕵️‍♂️ ---")
+                print(json.dumps(data, indent=2))
+                print("------------------------------------")
                 
                 entitlements = data.get("subscriber", {}).get("entitlements", {})
                 pro_entitlement = entitlements.get(PRO_ENTITLEMENT_IDENTIFIER)
