@@ -61,6 +61,10 @@
                 {
                     "name": "REDIS_PORT",
                     "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:test/currency-converter/secrets-MVoW32:REDIS_PORT::"
+                },
+                {
+                    "name": "REVENUECAT_API_KEY",
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:test/currency-converter/secrets-MVoW32:REVENUECAT_API_KEY::"
                 }
             ],
             "logConfiguration": {
