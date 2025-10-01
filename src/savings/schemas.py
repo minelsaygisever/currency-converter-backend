@@ -8,6 +8,8 @@ class SavingsEntryCreate(SQLModel):
     currency_code: str
     amount: float
     purchase_date: date 
+    is_migration: bool = False
+    previous_user_id: str | None = None 
 
 class SavingsEntryUpdate(SQLModel):
     currency_code: str | None = None

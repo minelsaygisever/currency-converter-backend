@@ -51,11 +51,48 @@ class SavingsService:
             except Exception as e:
                 print(f"RevenueCat API check failed: {e}")
                 return False
+            
+    async def _is_alias_valid(self, current_user_id: str, claimed_previous_id: str) -> bool:
+        """Checks with RevenueCat if the claimed_previous_id is a valid alias for the current_user_id."""
+        if not claimed_previous_id:
+            return False
+        
+        url = f"{settings.REVENUECAT_API_URL}/subscribers/{current_user_id}"
+        headers = {"Authorization": f"Bearer {REVENUECAT_API_KEY}"}
+        
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.get(url, headers=headers)
+                response.raise_for_status()
+                data = response.json()
+                
+                aliases = data.get("subscriber", {}).get("aliases", [])
+                print(f"Checking for alias. Current Aliases for {current_user_id}: {aliases}")
+                
+                return claimed_previous_id in aliases
+            except Exception as e:
+                print(f"RevenueCat alias check failed: {e}")
+                return False
+
 
     def get_all_by_user(self, user_id: str) -> List[SavingsEntry]:
         return repo.get_all_by_user(self.session, user_id=user_id)
 
     async def create(self, user_id: str, entry_data: SavingsEntryCreate) -> SavingsEntry:
+        if entry_data.is_migration:
+            print(f"Migration request for user {user_id}. Verifying alias...")
+            is_valid_migration = await self._is_alias_valid(
+                current_user_id=user_id,
+                claimed_previous_id=entry_data.previous_user_id
+            )
+            
+            if is_valid_migration:
+                print(f"Alias verified. Bypassing limit checks for migration.")
+                return repo.create(self.session, user_id=user_id, entry_data=entry_data)
+            else:
+                print(f"Invalid migration request for user {user_id}. Alias not found.")
+                raise HTTPException(status_code=403, detail="Invalid migration request.")
+ 
         is_pro = await self._is_user_pro(user_id)
         current_count = repo.get_count_by_user(self.session, user_id=user_id)
 
