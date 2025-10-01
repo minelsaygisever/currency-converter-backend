@@ -53,7 +53,12 @@ class SavingsService:
                 return False
             
     async def _is_alias_valid(self, current_user_id: str, claimed_previous_id: str) -> bool:
-        """Checks with RevenueCat if the claimed_previous_id is a valid alias for the current_user_id."""
+        """
+        Checks with RevenueCat if the migration is valid.
+        First, it checks for a direct alias.
+        As a fallback for timing issues, it checks if the current user has any purchase history,
+        which implies a successful restore operation.
+        """
         if not claimed_previous_id:
             return False
         
@@ -64,12 +69,24 @@ class SavingsService:
             try:
                 response = await client.get(url, headers=headers)
                 response.raise_for_status()
-                data = response.json()
+                data = response.json().get("subscriber", {})
                 
-                aliases = data.get("subscriber", {}).get("aliases", [])
+                aliases = data.get("aliases", [])
                 print(f"Checking for alias. Current Aliases for {current_user_id}: {aliases}")
+                if claimed_previous_id in aliases:
+                    return True
+
+                print("Alias not found. Checking for any purchase history as a fallback...")
+                subscriptions = data.get("subscriptions", {})
+                non_subscriptions = data.get("non_subscriptions", {})
                 
-                return claimed_previous_id in aliases
+                if subscriptions or non_subscriptions:
+                    print("Purchase history found. Approving migration based on successful restore.")
+                    return True
+
+                print("No alias or purchase history found. Invalid migration.")
+                return False
+                
             except Exception as e:
                 print(f"RevenueCat alias check failed: {e}")
                 return False
