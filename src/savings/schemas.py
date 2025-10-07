@@ -2,7 +2,7 @@
 
 from sqlmodel import SQLModel
 from uuid import UUID
-from datetime import date
+from datetime import date, datetime
 
 class SavingsEntryCreate(SQLModel):
     currency_code: str
@@ -21,3 +21,5 @@ class SavingsEntryRead(SQLModel):
     currency_code: str
     amount: float
     purchase_date: date
+    created_at: datetime
+    updated_at: datetime
