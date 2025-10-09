@@ -61,6 +61,30 @@
                 {
                     "name": "OPEN_EXCHANGE_RATES_API_KEY",
                     "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/application-kpPuQi:OPEN_EXCHANGE_RATES_API_KEY::"
+                },
+                {
+                    "name": "OXR_API_KEY_1",
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/application-kpPuQi:OXR_API_KEY_1::"
+                },
+                {
+                    "name": "OXR_API_KEY_2",
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/application-kpPuQi:OXR_API_KEY_2::"
+                },
+                {
+                    "name": "OXR_API_KEY_3",
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/application-kpPuQi:OXR_API_KEY_3::"
+                },
+                {
+                    "name": "OXR_API_KEY_4",
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/application-kpPuQi:OXR_API_KEY_4::"
+                },
+                                {
+                    "name": "OXR_API_KEY_5",
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/application-kpPuQi:OXR_API_KEY_5::"
+                },
+                {
+                    "name": "REVENUECAT_API_KEY",
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/application-kpPuQi:REVENUECAT_API_KEY::"
                 }
             ],
             "logConfiguration": {

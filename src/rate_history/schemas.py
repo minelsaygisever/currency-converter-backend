@@ -12,3 +12,6 @@ class HistoricalSnapshot(BaseModel):
         from_attributes = True
 
 HistoricalSnapshotResponse = List[HistoricalSnapshot]
+
+class HistoricalRatesResponse(BaseModel):
+    rates: Dict[str, float]

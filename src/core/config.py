@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     # Open Exchange Rates API
     OPEN_EXCHANGE_RATES_API_KEY: str
     OPEN_EXCHANGE_RATES_API_URL: str = "https://openexchangerates.org/api/latest.json"
+
+    # RevenueCat API
+    REVENUECAT_API_KEY: str
+    REVENUECAT_API_URL: str = "https://api.revenuecat.com/v1"
     
     # Cache
     CACHE_TTL_SECONDS: int

@@ -114,13 +114,3 @@ async def run_daily_job():
             rates=last_hour_of_yesterday.rates,
         )
         logger.info(f"Upserted daily snapshot for {yesterday_start_utc.date()}.")
-        
-        # Retention: Delete daily data older than 5 years
-        five_years_ago = utc_now - timedelta(days=5*365)
-
-        stmt = text("DELETE FROM currency_rate_snapshots WHERE frequency='daily' AND effective_at < :cutoff")
-        result = session.exec(stmt, params={"cutoff": five_years_ago})
-        
-        session.commit()
-        if result.rowcount > 0:
-            logger.info(f"Deleted {result.rowcount} old daily snapshots.")

@@ -3,12 +3,16 @@
 import json
 import logging
 from datetime import datetime, timedelta, timezone
+from datetime import date as date_obj
 from typing import List
+from fastapi import HTTPException
 
 from sqlmodel import Session
 from . import repo
 from src.core.redis_client import get_redis_client
 from .models import CurrencyRateSnapshot
+from .schemas import HistoricalRatesResponse
+
 
 logger = logging.getLogger(__name__)
 
@@ -92,30 +96,60 @@ class HistoricalDataService:
 
 
     def get_historical_data(self, range_str: str, base_currency: str = "USD") -> List[CurrencyRateSnapshot]:
-        frequency = "hourly" if range_str in ("1d", "1w") else "daily"
-        days = {"1d": 1, "1w": 7, "1m": 30, "6m": 182, "1y": 365, "5y": 365*5}.get(range_str, 30)
+        end_date = datetime.now(timezone.utc)
         
-        raw_snapshots = self._get_raw_snapshots_with_cache(
-            frequency=frequency,
-            days_to_fetch=days
-        )
-        
-        if range_str == "5y":
-            logger.info(f"Aggregating {len(raw_snapshots)} daily points to monthly for '5y' range.")
-            return self._aggregate_monthly(raw_snapshots)
-            
-        elif range_str == "1y":
-            logger.info(f"Aggregating {len(raw_snapshots)} daily points to weekly for '1y' range.")
-            return self._aggregate_weekly(raw_snapshots)
-
-        elif range_str == "6m":
-            logger.info(f"Aggregating {len(raw_snapshots)} daily points to every 2 days for '6m' range.")
-            return self._aggregate_every_n_days(raw_snapshots, n=2)
-        
-        elif range_str == "1w":
-            logger.info(f"Aggregating {len(raw_snapshots)} hourly points to 8-hourly for '1w' range.")
-            return self._aggregate_8hourly(raw_snapshots)
-        
-        else:
+        if range_str == "1d":
+            days = 1
+            frequency = "hourly"
+            start_date = end_date - timedelta(days=1)
+            raw_snapshots = repo.get_range(self.session, frequency=frequency, start=start_date, end=end_date, base_currency=base_currency)
             return raw_snapshots
+
+        elif range_str == "1w":
+            days = 7
+            frequency = "hourly"
+            start_date = end_date - timedelta(days=7)
+            raw_snapshots = repo.get_range(self.session, frequency=frequency, start=start_date, end=end_date, base_currency=base_currency)
+            return self._aggregate_8hourly(raw_snapshots)
+
+        else: # 1m, 6m, 1y, 5y
+            frequency = "daily"
+            days = {"1m": 30, "6m": 182, "1y": 365, "5y": 365*5}.get(range_str, 30)
+            start_date = end_date - timedelta(days=days)
+            raw_snapshots = repo.get_range(self.session, frequency=frequency, start=start_date, end=end_date, base_currency=base_currency)
+            
+            if range_str == "1m":
+                return raw_snapshots
+            elif range_str == "6m":
+                return self._aggregate_every_n_days(raw_snapshots, n=3)
+            elif range_str == "1y":
+                return self._aggregate_every_n_days(raw_snapshots, n=7)
+            elif range_str == "5y":
+                return self._aggregate_monthly(raw_snapshots)
         
+        return raw_snapshots
+        
+    
+    def get_rate_for_date(self, date_str: str) -> HistoricalRatesResponse:
+        """
+        Fetches and returns the raw USD-based rates for a specific date.
+        """
+        try:
+            target_date = datetime.strptime(date_str, "%Y-%m-%d").replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
+
+        # Find the daily snapshot for the requested date (or the closest one before it)
+        snapshot = repo.get_daily_snapshot_for_date(self.session, target_date, "USD")
+
+        # If there is no daily data and the requested date is today, search for the latest hourly data
+        if not snapshot and target_date.date() == date_obj.today():
+            print(f"No daily snapshot for {date_str}, searching for latest hourly snapshot...")
+            snapshot = repo.get_latest_hourly_for_date(self.session, target_date, "USD")
+
+
+        if not snapshot:
+            raise HTTPException(status_code=404, detail=f"No historical rate data found on or before {date_str}.")
+                    
+        return HistoricalRatesResponse(rates=snapshot.rates)
+    
