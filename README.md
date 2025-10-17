@@ -42,7 +42,7 @@ This project utilizes GitHub Actions for fully automated CI/CD pipelines for two
 
 All deployments are managed via Infrastructure as Code principles using task definition files stored within this repository.
 
-## ⚙️ Backend Architecture & Scheduled Jobs
+## ⏳ Scheduled Jobs
 To ensure historical data is collected reliably and consistently, the API uses a decoupled, event-driven architecture powered by **AWS EventBridge**. These jobs run independently of user API requests.
 
 -   ### Hourly Job
@@ -183,7 +183,6 @@ All endpoints are prefixed with `/api/v1/history`.
     }
     ```
 
----
 
 ### **Savings Endpoints**
 
@@ -262,7 +261,6 @@ All endpoints are prefixed with `/api/v1/savings`.
     -   `X-App-User-ID` (required)
 -   **Response:** `204 No Content` on success.
 
----
 
 ### **Admin Endpoints**
 
