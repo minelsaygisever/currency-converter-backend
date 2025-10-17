@@ -62,7 +62,11 @@ To ensure historical data is collected reliably and consistently, the API uses a
 
 ## 📖 API Endpoints
 
-All endpoints are prefixed with `/api/v1`.
+For a live, interactive API documentation where you can explore and test all the endpoints, please visit the link below. This documentation is automatically generated from the code via OpenAPI (Swagger UI).
+
+[![API Documentation](https://img.shields.io/badge/API_Docs-Swagger_UI-green)](https://api.minelsaygisever.com/docs/)
+
+All endpoints are prefixed with `/currency-converter/v1`.
 
 ### Currency Endpoints
 
@@ -79,7 +83,7 @@ All endpoints are prefixed with `/api/v1`.
 
 #### 2. List Active Symbols
 
--   **Endpoint:** `GET /currency-converter/v1/currencies`
+-   **Endpoint:** `GET /currencies`
 -   **Description:** Lists all currencies marked as `active=True` in the database.
 -   **Headers:**
     -   `X-API-KEY` (required): The secret API key for authentication.
@@ -111,7 +115,7 @@ All endpoints are prefixed with `/api/v1`.
 
 #### 3. Convert Currency
 
--   **Endpoint:** `GET /currency-converter/v1/rates`
+-   **Endpoint:** `GET /rates`
 -   **Description:** Returns the current exchange rates from the currency specified in the `from` parameter to all other active currencies.
 -   **Headers:**
     -   `X-API-KEY` (required): The secret API key for authentication.
@@ -140,8 +144,6 @@ All endpoints are prefixed with `/api/v1`.
 
 ### **History Endpoints**
 
-All endpoints are prefixed with `/api/v1/history`.
-
 #### **4. Get Historical Rates**
 
 -   **Endpoint:** `GET /history`
@@ -150,7 +152,7 @@ All endpoints are prefixed with `/api/v1/history`.
     -   `X-API-KEY` (required)
 -   **Parameters:**
     -   `range` (required): The time range. Supported values: `1d`, `1w`, `1m`, `6m`, `1y`, `5y`.
--   **Sample Request:** `https://api.minelsaygisever.com/api/v1/history?range=1w`
+-   **Sample Request:** `https://api.minelsaygisever.com/currency-converter/v1/history?range=1w`
 -   **Sample Response (`range=1w`):**
     ```json
     [
@@ -170,7 +172,7 @@ All endpoints are prefixed with `/api/v1/history`.
     -   `X-API-KEY` (required)
 -   **Parameters:**
     -   `date` (required): Date in `YYYY-MM-DD` format.
--   **Sample Request:** `https://api.minelsaygisever.com/api/v1/history/rate-on-date?date=2025-10-16`
+-   **Sample Request:** `https://api.minelsaygisever.com/currency-converter/v1/history/rate-on-date?date=2025-10-16`
 -   **Sample Response:**
     ```json
     {
@@ -188,7 +190,7 @@ All endpoints are prefixed with `/api/v1/history`.
 
 These endpoints allow for CRUD operations on a user's personal savings entries. **User identification is handled via the `X-App-User-ID` header, which should contain the user's unique RevenueCat App User ID.**
 
-All endpoints are prefixed with `/api/v1/savings`.
+All endpoints are prefixed with `/currency-converter/v1/savings`.
 
 #### **6. Get All Savings Entries**
 
