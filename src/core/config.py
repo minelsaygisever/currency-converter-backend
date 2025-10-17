@@ -8,9 +8,9 @@ VERSION = "1.0.0"
 
 class Settings(BaseSettings):
     # Application
-    APP_NAME: str = "Currency Converter API"
+    APP_NAME: str = "Currency & Savings API"
     APP_VERSION: str = VERSION
-    APP_DESCRIPTION: str = "A modern currency conversion service with real-time rates"
+    APP_DESCRIPTION: str = "An API for real-time currency conversion and personal savings tracking."
     
     # Database
     DB_USER: str

@@ -74,13 +74,13 @@ def clear_specific_cache(
 # --- Manual Job Triggers ---
 
 @router.post("/jobs/trigger-hourly", summary="Manually Trigger Hourly Job")
-async def trigger_hourly(_: str = Depends(verify_api_key)):
+async def trigger_hourly():
     """Manually triggers the job to fetch and store the latest hourly rates."""
     await run_hourly_job()
     return {"status": "Hourly job triggered successfully."}
 
 @router.post("/jobs/trigger-daily", summary="Manually Trigger Daily Job")
-async def trigger_daily(_: str = Depends(verify_api_key)):
+async def trigger_daily():
     """Manually triggers the job to consolidate the daily rate from hourly data."""
     await run_daily_job()
     return {"status": "Daily job triggered successfully."}

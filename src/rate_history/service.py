@@ -59,16 +59,6 @@ class HistoricalDataService:
         
         return sorted(list(monthly_points.values()), key=lambda x: x.effective_at)
 
-
-    def _aggregate_weekly(self, daily_data: List[CurrencyRateSnapshot]) -> List[CurrencyRateSnapshot]:
-        """Aggregates daily data to weekly by taking the last day of each week."""
-        weekly_points = {}
-        for snapshot in daily_data:
-            week_identifier = snapshot.effective_at.strftime('%Y-%U')
-            weekly_points[week_identifier] = snapshot
-        
-        return sorted(list(weekly_points.values()), key=lambda x: x.effective_at)
-
     def _aggregate_8hourly(self, hourly_data: List[CurrencyRateSnapshot]) -> List[CurrencyRateSnapshot]:
         """Aggregates hourly data by taking the last record of each 8-hour period."""
         eight_hourly_points = {}
