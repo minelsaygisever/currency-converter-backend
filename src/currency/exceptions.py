@@ -7,6 +7,7 @@ class CurrencyAPIError(Exception):
     def __init__(self, code: int, message: str):
         self.code = code
         self.message = message
+        super().__init__(message)
 
 async def currency_api_exception_handler(request: Request, exc: CurrencyAPIError):
     return JSONResponse(

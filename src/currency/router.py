@@ -11,6 +11,7 @@ from .models import Currency, CurrencyLocalization
 from .schemas import BatchConversionResponse, CurrencyRead, RateItem
 from .service import get_conversion_rates
 from .exceptions import CurrencyAPIError
+from . import repo
 from src.core.database import get_session
 from src.core.security import verify_api_key
 from src.core.rate_limiter import manual_rate_limiter
@@ -49,6 +50,7 @@ def get_language(accept_language: Optional[str] = Header(None)) -> str:
     # just get the main language code tr-TR -> tr
     return first_preference.split('-')[0]
 
+
 # --- Endpoint for Currencies Resource ---
 @router.get("/currencies", response_model=List[CurrencyRead], response_model_exclude_defaults=False)
 async def get_all_active_currencies(
@@ -58,42 +60,9 @@ async def get_all_active_currencies(
     Returns a list of all active currencies with names localized based on the 'Accept-Language' header.
     Defaults to English if the header is not provided or the language is not supported.
     """
-
-    loc_preferred = aliased(CurrencyLocalization, name="loc_preferred")
-    loc_default = aliased(CurrencyLocalization, name="loc_default")
-
-    def get_localized_currencies_from_db():
-        statement = (
-            select(
-                Currency.code,
-                Currency.symbol,
-                Currency.active,
-                Currency.flag_url,
-                Currency.decimal_places,
-                Currency.quick_rates,
-                Currency.quick_rates_order,
-                coalesce(loc_preferred.name, loc_default.name, Currency.code).label("name")
-            )
-            .select_from(Currency)
-            .outerjoin(loc_preferred, and_(
-                loc_preferred.currency_code == Currency.code,
-                loc_preferred.language_code == lang
-            ))
-            .outerjoin(loc_default, and_(
-                loc_default.currency_code == Currency.code,
-                loc_default.language_code == 'en'
-            ))
-            .where(Currency.active == True)
-            .order_by(
-                Currency.quick_rates_order.asc().nullslast(),
-                Currency.code.asc()
-            )
-        )
-        results = session.exec(statement).all()
-        return [CurrencyRead.model_validate(row) for row in results]
-
-    currencies = await run_in_threadpool(get_localized_currencies_from_db)
-    
+    currencies = await run_in_threadpool(
+        repo.get_active_currencies_with_localization, session, lang
+    )    
     return currencies
 
 
@@ -113,21 +82,13 @@ async def get_rates(
     """
     base_sym = from_symbol.upper()
 
-    currency_obj = session.get(Currency, base_sym)
+    currency_obj = await run_in_threadpool(repo.get_currency_by_code, session, base_sym)
     if not currency_obj or not currency_obj.active:
-        raise HTTPException(status_code=400, detail=f"Unsupported or inactive base currency: {base_sym}")
+            raise HTTPException(status_code=400, detail=f"Unsupported or inactive base currency: {base_sym}")
 
 
-    rows = session.exec(
-        select(Currency)
-        .where(Currency.active == True)
-        .order_by(
-            Currency.quick_rates_order.asc().nullslast(), 
-            Currency.code.asc()
-        )
-    ).all()
-    
-    to_symbols = [c.code for c in rows if c.code != base_sym]
+    all_codes = await run_in_threadpool(repo.get_all_active_currency_codes, session)
+    to_symbols = [code for code in all_codes if code != base_sym]
 
     if not to_symbols:
         return BatchConversionResponse(
@@ -143,9 +104,7 @@ async def get_rates(
             detail=e.message
         )
 
-    rates_list = []
-    for to_sym, rate in cross_rates_map.items():
-        rates_list.append(RateItem(to=to_sym, rate=rate))
+    rates_list = [RateItem(to=to_sym, rate=rate) for to_sym, rate in cross_rates_map.items()]
 
     response = BatchConversionResponse(
         **{"from": base_sym, "rates": rates_list}
