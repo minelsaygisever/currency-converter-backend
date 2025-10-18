@@ -15,10 +15,11 @@ from . import repo
 from src.core.database import get_session
 from src.core.security import verify_api_key
 from src.core.rate_limiter import manual_rate_limiter
+from src.core.schemas import ErrorDetail
 
 
 router = APIRouter(
-    tags=["API"],
+    tags=["Currency"],
     dependencies=[Depends(verify_api_key), Depends(manual_rate_limiter)] 
 )
 
@@ -52,7 +53,15 @@ def get_language(accept_language: Optional[str] = Header(None)) -> str:
 
 
 # --- Endpoint for Currencies Resource ---
-@router.get("/currencies", response_model=List[CurrencyRead], response_model_exclude_defaults=False)
+@router.get(
+    "/currencies", 
+    response_model=List[CurrencyRead], 
+    response_model_exclude_defaults=False,
+    responses={
+        401: {"model": ErrorDetail, "description": "Invalid or missing API Key"},
+        429: {"model": ErrorDetail, "description": "Rate limit exceeded"},
+    }
+)
 async def get_all_active_currencies(
     session: Session = Depends(get_session),
     lang: str = Depends(get_language)):
@@ -67,7 +76,17 @@ async def get_all_active_currencies(
 
 
 # --- Endpoint for Rates Resource ---
-@router.get("/rates", response_model=BatchConversionResponse, summary="Get Latest Exchange Rates")
+@router.get(
+        "/rates", 
+        response_model=BatchConversionResponse, 
+        summary="Get Latest Exchange Rates",
+        responses={
+            400: {"model": ErrorDetail, "description": "Unsupported, inactive, or invalid base currency"},
+            401: {"model": ErrorDetail, "description": "Invalid or missing API Key"},
+            429: {"model": ErrorDetail, "description": "Rate limit exceeded"},
+            502: {"model": ErrorDetail, "description": "External currency API is unavailable or returned an error"},
+        }
+)
 async def get_rates(
     from_symbol: str = Query(
         ..., 

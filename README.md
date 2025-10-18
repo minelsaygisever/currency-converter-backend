@@ -5,7 +5,7 @@
 ![Container](https://img.shields.io/badge/Container-Docker-blue.svg)
 ![Deployment](https://img.shields.io/badge/Deployment-AWS_ECS-orange.svg)
 
-This project is a simple and effective RESTful API service that provides real-time exchange rate conversions between currencies. The project is built using modern Python technologies and backend development best practices, and it is fully containerized with Docker for easy setup and deployment.
+This project is a RESTful API service that provides real-time currency conversion, historical rate analysis, and personal savings tracking, and built using modern Python technologies and backend development best practices, and it is fully containerized with Docker for easy setup and deployment.
 
 ## ✨ Features
 
@@ -33,6 +33,19 @@ This project is a simple and effective RESTful API service that provides real-ti
 -   **Asynchronous HTTP Requests:** HTTPX
 -   **Subscription Management:** RevenueCat
 -   **Testing:** Pytest, pytest-mock, pytest-asyncio
+
+## 🗃️ Database Schema
+
+The project's database is composed of four core tables, each managing a distinct domain of the application's data.
+
+![Database ERD](./.docs/db_schema.png)
+
+**Table Descriptions:**
+
+* **`currency`:** Stores the primary definition for each currency, including its code, symbol, and active status in the app.
+* **`currency_localizations`:** Linked to the `currency` table via a one-to-many relationship, this table stores the localized names (e.g., in different languages) for each currency.
+* **`currency_rate_snapshots`:** Contains the historical rate data, saved periodically by background jobs. Each row represents a full snapshot of all rates at a specific point in time (hourly or daily).
+* **`savings_entries`:** Securely stores individual savings entries for each user, identified by a `user_id`.
 
 ## 🔄 CI/CD - Continuous Integration & Deployment
 This project utilizes GitHub Actions for fully automated CI/CD pipelines for two separate environments.

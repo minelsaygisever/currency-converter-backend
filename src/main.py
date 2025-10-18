@@ -39,9 +39,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="Currency Converter API",
-    version="1.0.0",
-    description="A simple service for converting currencies",
+    title="Currency & Savings API",
+    version="2.0.0",
+    description="A service for real-time currency conversion and personal savings tracking.",
     lifespan=lifespan
 )
 

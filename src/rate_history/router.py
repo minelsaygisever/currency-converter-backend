@@ -5,7 +5,8 @@ from sqlmodel import Session
 
 import logging
 
-from .schemas import HistoricalSnapshotResponse, HistoricalRatesResponse
+from .schemas import HistoricalSnapshotResponse, HistoricalRatesResponse, AdminStatusResponse
+from src.core.schemas import ErrorDetail
 from src.core.database import get_session
 from src.core.security import verify_api_key
 from .service import HistoricalDataService
@@ -26,7 +27,14 @@ logger = logging.getLogger(__name__)
 def get_historical_service(session: Session = Depends(get_session)) -> HistoricalDataService:
     return HistoricalDataService(session)
 
-@router.get("", response_model=HistoricalSnapshotResponse)
+
+@router.get(
+        "", 
+        response_model=HistoricalSnapshotResponse,
+        responses={
+            401: {"model": ErrorDetail, "description": "Invalid or missing API Key"},
+        }  
+)
 def get_historical_snapshots(
     range_: str = Query("1m", alias="range", description="Time range for data: 1d, 1w, 1m, 6m, 1y, 5y"),
     base: str = Query("USD", description="The base currency for the snapshots"),
@@ -38,7 +46,17 @@ def get_historical_snapshots(
     """
     return service.get_historical_data(range_str=range_, base_currency=base)
 
-@router.get("/rate-on-date", response_model=HistoricalRatesResponse)
+
+@router.get(
+        "/rate-on-date", 
+        response_model=HistoricalRatesResponse,
+        responses={
+            400: {"model": ErrorDetail, "description": "Invalid date format. Use YYYY-MM-DD."},
+            401: {"model": ErrorDetail, "description": "Invalid or missing API Key"},
+            404: {"model": ErrorDetail, "description": "No historical rate data found for the specified date."},
+            422: {"model": ErrorDetail, "description": "Validation Error (e.g., 'date' query parameter is missing)"}
+        }
+)
 def get_rate_on_date(
     date: str = Query(..., description="Date in YYYY-MM-DD format"),
     service: HistoricalDataService = Depends(get_historical_service),
@@ -48,7 +66,15 @@ def get_rate_on_date(
     """
     return service.get_rate_for_date( date_str=date )
 
-@router.post("/admin/clear-cache", summary="Clear a specific cache key in Redis")
+
+@router.post(
+        "/admin/clear-cache", 
+        summary="Clear a specific cache key in Redis",
+        responses={
+            401: {"model": ErrorDetail, "description": "Invalid or missing API Key"},
+            422: {"model": ErrorDetail, "description": "Validation Error (e.g., 'cache_key' query parameter is missing)"}
+        }
+)
 def clear_specific_cache(
     cache_key: str = Query(..., description="The exact cache key to delete"),
     redis_client: redis.Redis = Depends(get_redis_client),
@@ -73,13 +99,27 @@ def clear_specific_cache(
 
 # --- Manual Job Triggers ---
 
-@router.post("/jobs/trigger-hourly", summary="Manually Trigger Hourly Job")
+@router.post(
+        "/jobs/trigger-hourly",
+        summary="Manually Trigger Hourly Job",
+        response_model=AdminStatusResponse,
+        responses={
+            401: {"model": ErrorDetail, "description": "Invalid or missing API Key"},
+        } 
+)
 async def trigger_hourly():
     """Manually triggers the job to fetch and store the latest hourly rates."""
     await run_hourly_job()
     return {"status": "Hourly job triggered successfully."}
 
-@router.post("/jobs/trigger-daily", summary="Manually Trigger Daily Job")
+
+@router.post(
+        "/jobs/trigger-daily", 
+        summary="Manually Trigger Daily Job",
+        responses={
+            401: {"model": ErrorDetail, "description": "Invalid or missing API Key"},
+        } 
+)
 async def trigger_daily():
     """Manually triggers the job to consolidate the daily rate from hourly data."""
     await run_daily_job()
