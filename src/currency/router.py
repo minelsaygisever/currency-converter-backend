@@ -19,7 +19,7 @@ from src.core.schemas import ErrorDetail
 
 
 router = APIRouter(
-    tags=["API"],
+    tags=["Currency"],
     dependencies=[Depends(verify_api_key), Depends(manual_rate_limiter)] 
 )
 
