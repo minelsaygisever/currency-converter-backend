@@ -34,6 +34,19 @@ This project is a RESTful API service that provides real-time currency conversio
 -   **Subscription Management:** RevenueCat
 -   **Testing:** Pytest, pytest-mock, pytest-asyncio
 
+## 🗃️ Database Schema
+
+The project's database is composed of four core tables, each managing a distinct domain of the application's data.
+
+![Database ERD](./.docs/db_schema.png)
+
+**Table Descriptions:**
+
+* **`currency`:** Stores the primary definition for each currency, including its code, symbol, and active status in the app.
+* **`currency_localizations`:** Linked to the `currency` table via a one-to-many relationship, this table stores the localized names (e.g., in different languages) for each currency.
+* **`currency_rate_snapshots`:** Contains the historical rate data, saved periodically by background jobs. Each row represents a full snapshot of all rates at a specific point in time (hourly or daily).
+* **`savings_entries`:** Securely stores individual savings entries for each user, identified by a `user_id`.
+
 ## 🔄 CI/CD - Continuous Integration & Deployment
 This project utilizes GitHub Actions for fully automated CI/CD pipelines for two separate environments.
 
