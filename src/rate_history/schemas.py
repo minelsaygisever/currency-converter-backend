@@ -15,3 +15,10 @@ HistoricalSnapshotResponse = List[HistoricalSnapshot]
 
 class HistoricalRatesResponse(BaseModel):
     rates: Dict[str, float]
+
+class AdminStatusResponse(BaseModel):
+    """
+    A general status response for admin endpoints or job triggers.
+    """
+    status: str
+    message: str | None = None
