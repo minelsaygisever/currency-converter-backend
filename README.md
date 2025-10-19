@@ -7,6 +7,18 @@
 
 This project is a RESTful API service that provides real-time currency conversion, historical rate analysis, and personal savings tracking, and built using modern Python technologies and backend development best practices, and it is fully containerized with Docker for easy setup and deployment.
 
+## 📱 Corresponding iOS Application
+
+This API serves as the backend for **Currency & Savings by Miba**, a native currency and savings tracking app available on the App Store.
+
+**View the iOS Client Code:** [github.com/minelsaygisever/currency-converter-ios](https://github.com/minelsaygisever/currency-converter-ios)
+<p align="left">
+    <a href="https://apps.apple.com/tr/app/currency-savings-by-miba/id6748993709">
+        <img src="https://img.shields.io/badge/Download_on_the-App_Store-black?style=for-the-badge&logo=apple" 
+             alt="Download on the App Store">
+    </a>
+</p>
+
 ## ✨ Features
 
 -   **Real-time Exchange Rates:** Get up-to-date conversion rates from a specified base currency to all other active currencies.
