@@ -62,7 +62,7 @@ The project's database is composed of four core tables, each managing a distinct
 ## 🔄 CI/CD - Continuous Integration & Deployment
 This project utilizes GitHub Actions for fully automated CI/CD pipelines for two separate environments.
 
--   **Test Environment:** Every push to the develop branch automatically builds, tests (if tests are added), and deploys the application to the AWS ECS test environment.
+-   **Test Environment:** Every push to the develop branch automatically builds and deploys the application to the AWS ECS test environment.
 -   **Production Environment:** Merging changes from develop into the main branch triggers a deployment to the production environment on AWS ECS.
 
 All deployments are managed via Infrastructure as Code principles using task definition files stored within this repository.
@@ -84,6 +84,12 @@ To ensure historical data is collected reliably and consistently, the API uses a
     -   **Responsibilities:**
         1.  Finds the last available `hourly` snapshot from the previous day.
         2.  Creates a single, consolidated `daily` snapshot for that day. This is used to efficiently serve data for longer time ranges (e.g., 1 year, 5 years).
+
+## 🧪 Testing Strategy
+
+This project uses **Pytest** with `pytest-mock` and `pytest-asyncio` for a robust unit testing strategy.
+
+The tests are located in the `/tests` directory and focus on the Service Layer. External dependencies (like the database repository, Redis cache, and external APIs) are mocked to isolate and test specific business logic, error handling, and caching logic.
 
 ## 📖 API Endpoints
 
