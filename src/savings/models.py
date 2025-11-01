@@ -7,10 +7,7 @@ import sqlalchemy as sa
 from sqlalchemy import func
 from typing import Optional
 
-class SavingsEntry(SQLModel, table=True):
-    __tablename__ = "savings_entries"
-
-    id: UUID = Field(default_factory=uuid4, primary_key=True, index=True)
+class SavingsEntryBase(SQLModel):
     user_id: str = Field(index=True, nullable=False)
     currency_code: str = Field(max_length=10, nullable=False)
     amount: float = Field(nullable=False)
@@ -34,3 +31,13 @@ class SavingsEntry(SQLModel, table=True):
             onupdate=func.now()
         )
     )
+
+class SavingsEntry(SavingsEntryBase, table=True):
+    __tablename__ = "savings_entries"
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True, index=True)
+
+class SavingsEntryV2(SavingsEntryBase, table=True):
+    __tablename__ = "savings_entries_v2" 
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True, index=True)

@@ -40,6 +40,7 @@ class Settings(BaseSettings):
 
     # RevenueCat API
     REVENUECAT_API_KEY: str
+    REVENUECAT_API_KEY_V2: str
     REVENUECAT_API_URL: str = "https://api.revenuecat.com/v1"
     
     # Cache
