@@ -48,8 +48,8 @@ app = FastAPI(
 
 app.include_router(currency_router, prefix="/currency-converter/v1")
 app.include_router(history_router, prefix="/currency-converter/v1")
-app.include_router(savings_router_v1.router)
-app.include_router(savings_router_v2.router)
+app.include_router(savings_router_v1.router, prefix="/currency-converter/v1")
+app.include_router(savings_router_v2.router, prefix="/currency-converter/v2")
 
 @app.get("/", tags=["health"])
 def read_root():

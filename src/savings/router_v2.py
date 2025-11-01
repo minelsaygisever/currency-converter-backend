@@ -17,7 +17,7 @@ V2_REVENUECAT_KEY = settings.REVENUECAT_API_KEY_V2
 V2_ENTITLEMENT_ID = "pro"
 
 router = APIRouter(
-    prefix="/v2/savings", 
+    prefix="/savings", 
     tags=["Savings (v2)"],
     dependencies=[Depends(verify_api_key)]
 )
