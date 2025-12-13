@@ -111,6 +111,10 @@ class SavingsService:
                 print(f"Invalid migration request for user {user_id}. Alias not found.")
                 raise HTTPException(status_code=403, detail="Invalid migration request.")
  
+        if entry_data.is_ad_reward:
+            print(f"Ad reward verified (client-side) for user {user_id}. Bypassing limit.")
+            return self.repo.create(self.session, user_id=user_id, entry_data=entry_data)
+
         is_pro = await self._is_user_pro(user_id)
         current_count = self.repo.get_count_by_user(self.session, user_id=user_id)
 
