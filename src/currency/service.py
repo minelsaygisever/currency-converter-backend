@@ -95,3 +95,20 @@ async def get_conversion_rates(from_sym: str, to_syms: List[str]) -> Dict[str, f
         cross_rates[to_sym_upper] = cross_rate
         
     return cross_rates
+
+
+async def invalidate_rates_cache():
+    """
+    Manually deletes the exchange rates cache key from Redis.
+    Forces the next request to fetch fresh data from the external API.
+    """
+    cache_key = "latest_usd_rates"
+    redis_client = get_redis_client()
+    
+    if redis_client:
+        redis_client.delete(cache_key)
+        logger.info(f"CACHE CLEARED: Key '{cache_key}' was manually deleted.")
+        return True
+    
+    logger.warning("CACHE CLEAR FAILED: Redis client not available.")
+    return False
