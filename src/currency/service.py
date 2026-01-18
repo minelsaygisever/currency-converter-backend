@@ -9,7 +9,7 @@ from sqlmodel import Session
 from src.core.config import settings
 from src.core.redis_client import get_redis_client 
 from src.core.database import engine
-from src.currency import repository
+from src.currency import repo
 from .exceptions import CurrencyAPIError
 import httpx 
 
@@ -70,7 +70,7 @@ async def _get_all_rates_from_usd() -> Dict[str, float]:
     required_codes: Set[str] = set()
     try:
         with Session(engine) as session:
-            db_codes = repository.get_all_active_currency_codes(session)
+            db_codes = repo.get_all_active_currency_codes(session)
             required_codes = {code.upper() for code in db_codes} 
             
         logger.info(f"Required currencies from DB (via Repository): {len(required_codes)} items")
