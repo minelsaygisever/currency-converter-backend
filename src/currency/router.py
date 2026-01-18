@@ -143,7 +143,7 @@ async def clear_cache(session: Session = Depends(get_session)):
     Manually clears the 'latest_usd_rates' key from Redis.
     Use this if the cached rates are incorrect or stuck.
     """
-    success = await run_in_threadpool(invalidate_rates_cache)
+    success = await invalidate_rates_cache()
     
     if not success:
          raise HTTPException(status_code=503, detail="Could not clear cache (Redis unavailable)")
