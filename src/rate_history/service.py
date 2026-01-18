@@ -9,7 +9,7 @@ from fastapi import HTTPException
 
 from sqlmodel import Session
 from . import repo
-from src.core.redis_client import get_redis_client
+from src.core.memory_cache import memory_cache
 from .models import CurrencyRateSnapshot
 from .schemas import HistoricalRatesResponse
 
@@ -19,19 +19,18 @@ logger = logging.getLogger(__name__)
 class HistoricalDataService:
     def __init__(self, session: Session):
         self.session = session
-        self.redis = get_redis_client()
+        self.cache = memory_cache
 
     def _get_raw_snapshots_with_cache(
         self, frequency: str, days_to_fetch: int
     ) -> List[CurrencyRateSnapshot]:
         cache_key = f"raw_snapshots:{frequency}:{days_to_fetch}d"
         
-        if self.redis:
-            cached_data = self.redis.get(cache_key)
-            if cached_data:
-                logger.info(f"RAW CACHE HIT for key: {cache_key}")
-                snapshot_dicts = json.loads(cached_data)
-                return [CurrencyRateSnapshot.model_validate(d) for d in snapshot_dicts]
+        cached_data = self.cache.get(cache_key)
+        if cached_data:
+            logger.info(f"RAW CACHE HIT for key: {cache_key}")
+            snapshot_dicts = json.loads(cached_data)
+            return [CurrencyRateSnapshot.model_validate(d) for d in snapshot_dicts]
 
         logger.info(f"RAW CACHE MISS for key: {cache_key}. Fetching from DB.")
         
@@ -42,11 +41,13 @@ class HistoricalDataService:
             self.session, frequency=frequency, start=start_date, end=end_date, base_currency="USD"
         )
         
-        if self.redis and db_rows:
+        if db_rows:
             ttl_seconds = 3600 if frequency == 'hourly' else 86400
             snapshot_dicts = [row.model_dump(mode='json') for row in db_rows]
-            self.redis.set(cache_key, json.dumps(snapshot_dicts), ex=ttl_seconds)
-            logger.info(f"RAW CACHE SET for key: {cache_key} with TTL: {ttl_seconds}s")
+            
+            # Cache set
+            self.cache.set(cache_key, json.dumps(snapshot_dicts), ex=ttl_seconds)
+            logger.info(f"RAW CACHE SET for key: {cache_key}")
 
         return db_rows
     

@@ -73,9 +73,7 @@ async def test_get_conversion_rates_skips_invalid_to_symbol(mocker):
 async def test_get_all_rates_from_usd_cache_hit(mocker):
     # Arrange
     cached_rates = '{"USD": 1.0, "TRY": 30.0}'
-    mock_redis_client = mocker.Mock()
-    mock_redis_client.get.return_value = cached_rates
-    mocker.patch("src.currency.service.get_redis_client", return_value=mock_redis_client)
+    mock_memory_cache_get = mocker.patch("src.core.memory_cache.memory_cache.get", return_value=cached_rates)
 
     mock_httpx_get = mocker.patch("httpx.AsyncClient.get")
 
@@ -86,7 +84,7 @@ async def test_get_all_rates_from_usd_cache_hit(mocker):
     # Assert
     # 1. Verify that the result is the same as the data from the cache
     assert result == {"USD": 1.0, "TRY": 30.0}
-    # 2. Verify that Redis' get method is called
-    mock_redis_client.get.assert_called_once_with("latest_usd_rates")
+    # 2. Verify that cache's get method is called
+    mock_memory_cache_get.get.assert_called_once_with("latest_usd_rates")
     # 3. Verify that the external API is never called
     mock_httpx_get.assert_not_called()

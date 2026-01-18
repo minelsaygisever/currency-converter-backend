@@ -135,17 +135,17 @@ async def get_rates(
     summary="Force Clear Exchange Rate Cache",
     responses={
         200: {"description": "Cache successfully cleared"},
-        503: {"model": ErrorDetail, "description": "Redis unavailable"}
+        503: {"model": ErrorDetail, "description": "Cache service  unavailable"}
     }
 )
 async def clear_cache(session: Session = Depends(get_session)):
     """
-    Manually clears the 'latest_usd_rates' key from Redis.
+    Manually clears the 'latest_usd_rates' key from cache.
     Use this if the cached rates are incorrect or stuck.
     """
     success = await invalidate_rates_cache()
     
     if not success:
-         raise HTTPException(status_code=503, detail="Could not clear cache (Redis unavailable)")
+         raise HTTPException(status_code=503, detail="Could not clear cache (Cache service unavailable)")
          
     return {"status": "success", "message": "Exchange rate cache cleared. Next request will fetch fresh data."}
