@@ -33,6 +33,8 @@ class Settings(BaseSettings):
 
     # Security
     API_SECRET_KEY: str
+
+    CURRENCY_API_URL_PRIMARY: str = "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json"
     
     # Open Exchange Rates API
     OPEN_EXCHANGE_RATES_API_KEY: str
