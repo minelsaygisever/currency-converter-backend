@@ -3,14 +3,49 @@
 import time
 import json
 import logging
-from typing import List, Dict
+from typing import List, Dict, Set
+from sqlmodel import Session
 
 from src.core.config import settings
 from src.core.redis_client import get_redis_client 
+from src.core.database import engine
+from src.currency import repository
 from .exceptions import CurrencyAPIError
 import httpx 
 
 logger = logging.getLogger(__name__)
+
+async def _fetch_from_primary_api() -> dict:
+    url = settings.CURRENCY_API_URL_PRIMARY
+    logger.info(f"Fetching from PRIMARY API (CDN): {url}")
+    
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, timeout=15)
+        response.raise_for_status()
+        data = response.json()
+        
+        raw_rates = data.get("usd", {})
+        
+        standardized_rates = {k.upper(): v for k, v in raw_rates.items()}
+        
+        if "USD" not in standardized_rates:
+            standardized_rates["USD"] = 1.0
+            
+        return standardized_rates
+
+async def _fetch_from_fallback_api() -> dict:
+    if not settings.OPEN_EXCHANGE_RATES_API_KEY:
+        logger.warning("Fallback API Key is missing. Skipping.")
+        return {}
+
+    url = f"{settings.OPEN_EXCHANGE_RATES_API_URL}?app_id={settings.OPEN_EXCHANGE_RATES_API_KEY}"
+    logger.info("Fetching from FALLBACK API (OpenExchangeRates)...")
+    
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        return data.get("rates", {})
 
 async def _get_all_rates_from_usd() -> Dict[str, float]:
     """
@@ -30,35 +65,72 @@ async def _get_all_rates_from_usd() -> Dict[str, float]:
             return json.loads(cached_data)
 
     # 2. Cache miss, pull it from API.
-    logger.info(f"CACHE MISS: Key '{cache_key}' not found. Fetching from OpenExchangeRates API.")
+    logger.info(f"CACHE MISS: Key '{cache_key}' not found. Fetching...")
     
+    required_codes: Set[str] = set()
+    try:
+        with Session(engine) as session:
+            db_codes = repository.get_all_active_currency_codes(session)
+            required_codes = {code.upper() for code in db_codes} 
+            
+        logger.info(f"Required currencies from DB (via Repository): {len(required_codes)} items")
+    except Exception as e:
+        logger.error(f"Failed to fetch active currencies using repository: {e}")
 
-    if not settings.OPEN_EXCHANGE_RATES_API_KEY:
-        raise CurrencyAPIError(code=500, message="Server configuration error: missing OPEN_EXCHANGE_RATES_API_KEY.")
-
-    api_url = f"{settings.OPEN_EXCHANGE_RATES_API_URL}?app_id={settings.OPEN_EXCHANGE_RATES_API_KEY}"
+    rates = {}
+    primary_failed_completely = False
 
     try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(api_url, timeout=10)
-        response.raise_for_status()
-        data = response.json()
-    except httpx.RequestError as e:
-        raise CurrencyAPIError(code=502, message=f"External API request failed: {e}")
-    except ValueError:
-        raise CurrencyAPIError(code=502, message="External API returned invalid JSON.")
+        rates = await _fetch_from_primary_api()
+        logger.info(f"Primary API returned {len(rates)} currencies.")
+    except Exception as e:
+        logger.error(f"Primary API failed completely: {e}")
+        primary_failed_completely = True
+        rates = {}
 
-    if "error" in data:
-        raise CurrencyAPIError(code=data.get("status"), message=data.get("description"))
 
-    rates = data.get("rates", {}) # {"AED": 3.67, "AFN": 71.8,... "USD": 1.0, ...}
+    fetched_keys = set(rates.keys())
+    missing_currencies = required_codes - fetched_keys
+    should_use_fallback = False
 
-    # 3. Save the new result to redis
-    if redis_client and rates:
+    if primary_failed_completely:
+        logger.warning("Primary API is down. Fallback is mandatory.")
+        should_use_fallback = True
+    elif missing_currencies:
+        logger.warning(f"Primary API is OK but missing specific currencies: {missing_currencies}. Activating Fallback to fill gaps.")
+        should_use_fallback = True
+    else:
+        logger.info("Primary API provided all required currencies. No need for Fallback.")
+
+    if should_use_fallback:
+        try:
+            fallback_rates = await _fetch_from_fallback_api()
+            
+            if fallback_rates:
+                filled_count = 0
+                for code, rate in fallback_rates.items():
+                    if code not in rates:
+                        rates[code] = rate
+                        filled_count += 1
+                
+                logger.info(f"Fallback Merge Complete: {filled_count} missing currencies added from Fallback.")
+            else:
+                logger.warning("Fallback API returned empty rates.")
+
+        except Exception as e:
+            logger.error(f"Fallback API failed: {e}")
+
+    final_keys = set(rates.keys())
+    still_missing = required_codes - final_keys
+    if still_missing:
+        logger.critical(f"CRITICAL: Even after both APIs, these currencies are missing: {still_missing}")
+    
+    if not rates:
+        raise CurrencyAPIError(code=502, message="All currency data sources are unavailable.")
+
+    if redis_client:
         redis_client.set(cache_key, json.dumps(rates), ex=settings.CACHE_TTL_SECONDS)
-        set_ttl = redis_client.ttl(cache_key)
-        logger.info(f"CACHE SET: Saved all rates to key '{cache_key}', ttl after set={set_ttl}s (expected={settings.CACHE_TTL_SECONDS}s)")
-        
+
     return rates
 
 
