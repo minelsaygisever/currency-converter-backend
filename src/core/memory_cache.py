@@ -1,5 +1,6 @@
 import time
 import logging
+import threading
 from threading import Lock
 
 logger = logging.getLogger(__name__)
@@ -13,7 +14,37 @@ class InMemoryCache:
             cls._instance._store = {}
             cls._instance._expirations = {}
             cls._instance._lock = Lock()
+            cls._instance._start_cleanup_loop()
         return cls._instance
+    
+    def _start_cleanup_loop(self):
+        def run_loop():
+            while True:
+                time.sleep(600)  # 10 minutes
+                self.cleanup_expired()
+
+        thread = threading.Thread(target=run_loop, daemon=True)
+        thread.start()
+
+    def cleanup_expired(self):
+        now = time.time()
+        keys_to_delete = []
+
+        with self._lock:
+            for key, expire_time in self._expirations.items():
+                if now > expire_time:
+                    keys_to_delete.append(key)
+            
+            count = 0
+            for key in keys_to_delete:
+                if key in self._store:
+                    del self._store[key]
+                if key in self._expirations:
+                    del self._expirations[key]
+                count += 1
+        
+        if count > 0:
+            logger.info(f"[MemoryCache] Cleaned up {count} expired keys.")
 
     def get(self, key: str):
         with self._lock:
