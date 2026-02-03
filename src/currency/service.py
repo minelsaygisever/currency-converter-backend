@@ -7,7 +7,7 @@ from typing import List, Dict, Set
 from sqlmodel import Session
 
 from src.core.config import settings
-from src.core.redis_client import get_redis_client 
+from src.core.memory_cache import memory_cache 
 from src.core.database import engine
 from src.currency import repo
 from .exceptions import CurrencyAPIError
@@ -49,13 +49,11 @@ async def _fetch_secondary_cdn() -> dict:
 
 async def _get_all_rates_from_usd() -> Dict[str, float]:
     cache_key = "latest_usd_rates"
-    redis_client = get_redis_client()
-    
-    if redis_client:
-        cached_data = redis_client.get(cache_key)
-        if cached_data:
-            logger.info("CACHE HIT: Rates found in Redis.")
-            return json.loads(cached_data)
+
+    cached_data = memory_cache.get(cache_key)
+    if cached_data:
+        logger.info("CACHE HIT: Rates found in Memory.")
+        return json.loads(cached_data)
 
     logger.info("CACHE MISS: Initiating API fetch sequence (Primary: OER, Secondary: CDN)...")
     
@@ -119,8 +117,7 @@ async def _get_all_rates_from_usd() -> Dict[str, float]:
     if not rates:
         raise CurrencyAPIError(code=502, message="All currency data sources are unavailable.")
 
-    if redis_client:
-        redis_client.set(cache_key, json.dumps(rates), ex=settings.CACHE_TTL_SECONDS)
+    memory_cache.set(cache_key, json.dumps(rates), ex=settings.CACHE_TTL_SECONDS)
     
     return rates
 
@@ -161,17 +158,8 @@ async def get_conversion_rates(from_sym: str, to_syms: List[str]) -> Dict[str, f
 
 
 async def invalidate_rates_cache():
-    """
-    Manually deletes the exchange rates cache key from Redis.
-    Forces the next request to fetch fresh data from the external API.
-    """
     cache_key = "latest_usd_rates"
-    redis_client = get_redis_client()
-    
-    if redis_client:
-        redis_client.delete(cache_key)
-        logger.info(f"CACHE CLEARED: Key '{cache_key}' was manually deleted.")
-        return True
-    
-    logger.warning("CACHE CLEAR FAILED: Redis client not available.")
-    return False
+
+    memory_cache.delete(cache_key)
+    logger.info(f"CACHE CLEARED: Key '{cache_key}' was manually deleted.")
+    return True

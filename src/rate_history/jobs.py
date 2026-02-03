@@ -7,7 +7,7 @@ from sqlmodel import select
 from sqlalchemy import text
 
 from src.core.database import get_session
-from src.core.redis_client import get_redis_client
+from src.core.memory_cache import memory_cache
 from src.currency.service import _get_all_rates_from_usd
 from src.currency.exceptions import CurrencyAPIError
 from .models import CurrencyRateSnapshot
@@ -66,12 +66,9 @@ async def run_hourly_job():
         if result.rowcount > 0:
             logger.info(f"Deleted {result.rowcount} old hourly snapshots.")
 
-    # 3) Update live cache in Redis (TTL should be less than an hour)
-    redis_client = get_redis_client()
-    if redis_client:
-        # TTL is 55 mins to ensure it expires before the next job, forcing a refresh
-        redis_client.set("latest_usd_rates", json.dumps(rates), ex=55 * 60)
-        logger.info("Updated 'latest_usd_rates' cache in Redis with TTL 55 minutes.")
+    # 3) Update live cache
+    memory_cache.set("latest_usd_rates", json.dumps(rates), ex=55 * 60)
+    logger.info("Updated 'latest_usd_rates' cache in Memory with TTL 55 minutes.")
 
 async def run_daily_job():
     """

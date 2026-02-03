@@ -26,11 +26,6 @@ class Settings(BaseSettings):
         
         return f"postgresql+psycopg2://{self.DB_USER}:{encoded_password}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
-
-    # Redis
-    REDIS_HOST: str
-    REDIS_PORT: int
-
     # Security
     API_SECRET_KEY: str
 
@@ -42,6 +37,7 @@ class Settings(BaseSettings):
 
     # RevenueCat API
     REVENUECAT_API_KEY: str
+    REVENUECAT_API_KEY_V2: str
     REVENUECAT_API_URL: str = "https://api.revenuecat.com/v1"
     
     # Cache

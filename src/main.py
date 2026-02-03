@@ -4,9 +4,9 @@ from datetime import datetime
 
 from src.currency.router import router as currency_router
 from src.rate_history.router import router as history_router
-from src.savings.router import router as savings_router
+from src.savings import router as savings_router_v1
+from src.savings import router_v2 as savings_router_v2
 from src.core.database import init_db
-from src.core.redis_client import get_redis_client
 
 from contextlib import asynccontextmanager
 
@@ -16,17 +16,6 @@ async def lifespan(app: FastAPI):
 
     init_db()
     logger.info("Database initialized successfully")
-
-    # Check Redis connection
-    redis_client = get_redis_client()
-    if redis_client:
-        try:
-            redis_client.ping()
-            logger.info("Redis connection verified.")
-        except Exception as e:
-            logger.error(f"Could not verify Redis connection on startup: {e}")
-    else:
-        logger.warning("Redis client is not available.")
 
     yield
 
@@ -47,7 +36,8 @@ app = FastAPI(
 
 app.include_router(currency_router, prefix="/currency-converter/v1")
 app.include_router(history_router, prefix="/currency-converter/v1")
-app.include_router(savings_router, prefix="/currency-converter/v1")
+app.include_router(savings_router_v1.router, prefix="/currency-converter/v1")
+app.include_router(savings_router_v2.router, prefix="/currency-converter/v2")
 
 @app.get("/", tags=["health"])
 def read_root():

@@ -25,7 +25,7 @@ This API serves as the backend for **Currency & Savings by Miba**, a native curr
 -   **List Active Currencies:** Returns a full list of currency symbols that are registered and active in the system.
 -   **Secure API Endpoints:** All endpoints are protected via a mandatory `X-API-KEY` header to prevent unauthorized access.
 -   **Per-Device Rate Limiting:** Protects the API from abuse by limiting the number of requests per device, tracked via an `X-Device-ID` header.
--   **High-Performance Caching:** Utilizes **Redis** for caching external API responses, significantly reducing latency and dependency on third-party services.
+-   **High-Performance Caching:** Utilizes a custom **In-Memory Caching** mechanism for caching external API responses, significantly reducing latency and removing external infrastructure dependencies.
 -   **Asynchronous Architecture:** High-performance, non-blocking structure thanks to `FastAPI` and `httpx`.
 -   **Database Integration:** Uses `SQLModel` for storing and managing currency information.
 -   **Containerized:** Fully containerized with Docker for a consistent development and deployment environment.
@@ -39,7 +39,7 @@ This API serves as the backend for **Currency & Savings by Miba**, a native curr
 
 -   **Backend:** Python 3.12, FastAPI
 -   **Database:** PostgreSQL (Production on AWS RDS)
--   **Caching / In-Memory Database:** Redis (Production on AWS ElastiCache)
+-   **Caching:** Python In-Memory Cache (Thread-safe Dictionary)
 -   **Cloud & Deployment:** AWS ECS (Fargate), AWS ECR, Docker, AWS EventBridge for Scheduled Tasks
 -   **Data Validation:** Pydantic
 -   **Asynchronous HTTP Requests:** HTTPX
@@ -76,7 +76,7 @@ To ensure historical data is collected reliably and consistently, the API uses a
         1.  Fetches the latest currency rates from the external OpenExchangeRates API.
         2.  If the API call fails, it **forward-fills** the data using the last successful snapshot to ensure data continuity.
         3.  Saves the data as an `hourly` snapshot in the `currency_rate_snapshots` table.
-        4.  Updates the primary `latest_usd_rates` key in the Redis cache with a 55-minute TTL.
+        4.  Updates the primary `latest_usd_rates` key in the application memory cache with a 55-minute TTL.
         5.  Deletes hourly snapshots older than 30 days to manage database size.
 
 -   ### Daily Job
@@ -89,7 +89,7 @@ To ensure historical data is collected reliably and consistently, the API uses a
 
 This project uses **Pytest** with `pytest-mock` and `pytest-asyncio` for a robust unit testing strategy.
 
-The tests are located in the `/tests` directory and focus on the Service Layer. External dependencies (like the database repository, Redis cache, and external APIs) are mocked to isolate and test specific business logic, error handling, and caching logic.
+The tests are located in the `/tests` directory and focus on the Service Layer. External dependencies are mocked to isolate and test specific business logic, error handling, and caching logic.
 
 ## 📖 API Endpoints
 
@@ -299,6 +299,6 @@ All endpoints are prefixed with `/currency-converter/v1/savings`.
 
 These endpoints are intended for administrative purposes and should not be exposed to client applications.
 
--   **`POST /history/admin/clear-cache`**: Deletes a specific key from the Redis cache.
+-   **`POST /history/admin/clear-cache`**: Deletes a specific key from the cache.
 -   **`POST /history/jobs/trigger-hourly`**: Manually triggers the hourly data collection job.
 -   **`POST /history/jobs/trigger-daily`**: Manually triggers the daily data aggregation job.

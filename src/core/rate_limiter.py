@@ -1,6 +1,6 @@
 import logging
 from fastapi import Request, HTTPException, status
-from src.core.redis_client import get_redis_client
+from src.core.memory_cache import memory_cache
 
 logger = logging.getLogger(__name__)
 REQUEST_LIMIT = 20 
@@ -8,32 +8,22 @@ TIME_WINDOW_SECONDS = 60
 
 async def manual_rate_limiter(request: Request):
     """
-    A simple, manual rate limiter dependency using Redis.
+    In-Memory Rate Limiter.
     """
-    redis_client = get_redis_client()
-    if not redis_client:
-        logger.warning("Redis client not available, skipping rate limit check.")
-        return
-
-    # Use the device ID, fall back to IP address.
     client_id = request.headers.get("x-device-id", request.client.host)
+    cache_key = f"rate_limit:{client_id}"
     
-    # Create a unique key for this client in Redis
-    redis_key = f"rate_limit:{client_id}"
     current_requests = 0
 
     try:
-        # Use a pipeline for atomic operations
-        pipeline = redis_client.pipeline()
-        pipeline.incr(redis_key, 1)
-        pipeline.expire(redis_key, TIME_WINDOW_SECONDS, nx=True) # Set expiration only if the key is new
+        current_requests = memory_cache.incr(cache_key, 1)
         
-        # Execute and get the current count
-        results = pipeline.execute()
-        current_requests = results[0]
+        if current_requests == 1:
+            memory_cache.expire(cache_key, TIME_WINDOW_SECONDS)
             
     except Exception as e:
-        logger.error(f"Could not check rate limit in Redis: {e}")
+        logger.error(f"Could not check rate limit: {e}")
+        return
 
     if current_requests > REQUEST_LIMIT:
             logger.warning(f"Rate limit exceeded for client: {client_id}")

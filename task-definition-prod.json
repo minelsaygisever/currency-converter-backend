@@ -47,14 +47,6 @@
                     "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/database-OpXTPa:dbname::"
                 },
                 {
-                    "name": "REDIS_HOST",
-                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/application-kpPuQi:REDIS_HOST::"
-                },
-                {
-                    "name": "REDIS_PORT",
-                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/application-kpPuQi:REDIS_PORT::"
-                },
-                {
                     "name": "API_SECRET_KEY",
                     "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/application-kpPuQi:API_SECRET_KEY::"
                 },
@@ -85,6 +77,10 @@
                 {
                     "name": "REVENUECAT_API_KEY",
                     "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/application-kpPuQi:REVENUECAT_API_KEY::"
+                },
+                {
+                    "name": "REVENUECAT_API_KEY_V2",
+                    "valueFrom": "arn:aws:secretsmanager:eu-central-1:173748330247:secret:currency-converter/application-kpPuQi:REVENUECAT_API_KEY_V2::"
                 }
             ],
             "logConfiguration": {

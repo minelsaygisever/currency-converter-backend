@@ -12,8 +12,7 @@ from src.core.security import verify_api_key
 from .service import HistoricalDataService
 from .jobs import run_hourly_job, run_daily_job 
 
-from src.core.redis_client import get_redis_client
-import redis 
+from src.core.memory_cache import memory_cache
 
 router = APIRouter(
     prefix="/history",
@@ -69,7 +68,7 @@ def get_rate_on_date(
 
 @router.post(
         "/admin/clear-cache", 
-        summary="Clear a specific cache key in Redis",
+        summary="Clear a specific cache key in Memory",
         responses={
             401: {"model": ErrorDetail, "description": "Invalid or missing API Key"},
             422: {"model": ErrorDetail, "description": "Validation Error (e.g., 'cache_key' query parameter is missing)"}
@@ -77,15 +76,13 @@ def get_rate_on_date(
 )
 def clear_specific_cache(
     cache_key: str = Query(..., description="The exact cache key to delete"),
-    redis_client: redis.Redis = Depends(get_redis_client),
     _ = Depends(verify_api_key) 
 ):
     """
-    Deletes a specific key from the Redis cache. 
-    USE WITH CAUTION.
+    Deletes a specific key from the Memory cache. 
     """
     logger.info(f"Attempting to delete cache key: {cache_key}")
-    deleted_count = redis_client.delete(cache_key)
+    deleted_count = memory_cache.delete(cache_key)
     
     if deleted_count > 0:
         message = f"Successfully deleted cache key: '{cache_key}'"

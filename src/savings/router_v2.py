@@ -10,26 +10,25 @@ from src.core.security import verify_api_key
 from src.core.schemas import ErrorDetail
 from .schemas import SavingsEntryCreate, SavingsEntryRead, SavingsEntryUpdate
 from src.core.config import settings
-from . import repo
+from . import repo_v2
 from .service import SavingsService 
 
-V1_REVENUECAT_KEY = settings.REVENUECAT_API_KEY
-V1_ENTITLEMENT_ID = "pro_access"
+V2_REVENUECAT_KEY = settings.REVENUECAT_API_KEY_V2
+V2_ENTITLEMENT_ID = "pro"
 
 router = APIRouter(
     prefix="/savings", 
-    tags=["Savings"],
+    tags=["Savings (v2)"],
     dependencies=[Depends(verify_api_key)]
 )
 
 def get_savings_service(session: Session = Depends(get_session)) -> SavingsService:
     return SavingsService(
         session=session, 
-        repo_module=repo,
-        revenuecat_api_key=V1_REVENUECAT_KEY,
-        pro_entitlement_id=V1_ENTITLEMENT_ID
+        repo_module=repo_v2,
+        revenuecat_api_key=V2_REVENUECAT_KEY,
+        pro_entitlement_id=V2_ENTITLEMENT_ID
     )
-
 
 def get_user_id(x_app_user_id: str = Header(..., description="RevenueCat App User ID")) -> str:
     if not x_app_user_id:
