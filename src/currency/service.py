@@ -91,8 +91,17 @@ async def _fetch_and_merge_api_data() -> Dict[str, float]:
 
     return rates
 
+def save_rates_to_db_task(rates: dict):
+    try:
+        with Session(engine) as session:
+            repo.upsert_exchange_rate_cache(session, base_currency="USD", rates=rates)
+            logger.info("Background Task: Saved fresh rates to DB.")
+    except Exception as e:
+        logger.error(f"Background Task Error: Could not save rates to DB: {e}")
 
-async def _get_all_rates_from_usd() -> Dict[str, float]:
+from fastapi import BackgroundTasks
+
+async def _get_all_rates_from_usd(background_tasks: BackgroundTasks = None) -> Dict[str, float]:
     cache_key = "latest_usd_rates"
 
     cached_data = memory_cache.get(cache_key)
@@ -130,12 +139,10 @@ async def _get_all_rates_from_usd() -> Dict[str, float]:
         rates = await _fetch_and_merge_api_data()
         
         if rates:
-            try:
-                with Session(engine) as session:
-                    repo.upsert_exchange_rate_cache(session, base_currency="USD", rates=rates)
-                    logger.info("Saved fresh rates to Postgres DB backup via Repo.")
-            except Exception as e:
-                logger.error(f"Could not save backup to DB: {e}")
+            if background_tasks:
+                background_tasks.add_task(save_rates_to_db_task, rates)
+            else:
+                save_rates_to_db_task(rates)
 
     if not rates:
         raise CurrencyAPIError(code=502, message="All currency data sources are unavailable.")
@@ -145,12 +152,16 @@ async def _get_all_rates_from_usd() -> Dict[str, float]:
     return rates
 
 
-async def get_conversion_rates(from_sym: str, to_syms: List[str]) -> Dict[str, float]:
+async def get_conversion_rates(
+        from_sym: str, 
+        to_syms: List[str], 
+        background_tasks: BackgroundTasks = None
+    ) -> Dict[str, float]:
     """
     Calculates conversion rates using a cached master list of USD-based rates.
     """
 
-    all_rates_vs_usd = await _get_all_rates_from_usd()
+    all_rates_vs_usd = await _get_all_rates_from_usd(background_tasks)
 
     from_sym_upper = from_sym.upper()
 
