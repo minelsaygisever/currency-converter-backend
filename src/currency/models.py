@@ -1,7 +1,10 @@
 # src/modules/currency/models.py
 
-from typing import List, TYPE_CHECKING
+from typing import List, TYPE_CHECKING, Dict, Optional
+from datetime import datetime
 from sqlmodel import SQLModel, Field, Relationship
+from sqlalchemy import Column, DateTime, func
+from sqlalchemy.dialects.postgresql import JSONB
 
 if TYPE_CHECKING:
     from .models import Currency
@@ -30,3 +33,18 @@ class Currency(SQLModel, table=True):
 
     localizations: List["CurrencyLocalization"] = Relationship(back_populates="currency")
 
+
+class ExchangeRateCache(SQLModel, table=True):
+    __tablename__ = "exchange_rate_cache"
+
+    currency_base: str = Field(primary_key=True, max_length=10)
+    rates: Dict[str, float] = Field(sa_column=Column(JSONB, nullable=False))
+    updated_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(
+            DateTime(timezone=True),
+            server_default=func.now(),
+            onupdate=func.now(),
+            nullable=False
+        )
+    )

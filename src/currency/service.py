@@ -5,6 +5,7 @@ import json
 import logging
 from typing import List, Dict, Set
 from sqlmodel import Session
+from datetime import datetime, timezone, timedelta
 
 from src.core.config import settings
 from src.core.memory_cache import memory_cache 
@@ -46,6 +47,50 @@ async def _fetch_secondary_cdn() -> dict:
             
         return standardized_rates
 
+async def _fetch_and_merge_api_data() -> Dict[str, float]:
+    """
+    It generates data by combining Primary and Secondary APIs.
+    """
+    required_codes: Set[str] = set()
+    try:
+        with Session(engine) as session:
+            db_codes = repo.get_all_active_currency_codes(session)
+            required_codes = {code.upper() for code in db_codes}
+    except Exception as e:
+        logger.error(f"DB Error (fetching codes): {e}")
+
+    rates = {}
+    primary_failed = False
+
+    # 1. Primary Fetch
+    try:
+        rates = await _fetch_primary_oer()
+        if not rates:
+            primary_failed = True
+    except Exception as e:
+        logger.error(f"Primary API failed: {e}")
+        primary_failed = True
+
+    # 2. Check Gaps
+    fetched_keys = set(rates.keys())
+    missing_currencies = required_codes - fetched_keys
+    should_use_secondary = primary_failed or bool(missing_currencies)
+
+    # 3. Secondary Fetch (if needed)
+    if should_use_secondary:
+        try:
+            secondary_rates = await _fetch_secondary_cdn()
+            if secondary_rates:
+                for code, rate in secondary_rates.items():
+                    if code not in rates:
+                        rates[code] = rate
+            else:
+                logger.warning("Secondary API returned empty rates.")
+        except Exception as e:
+            logger.error(f"Secondary API failed: {e}")
+
+    return rates
+
 
 async def _get_all_rates_from_usd() -> Dict[str, float]:
     cache_key = "latest_usd_rates"
@@ -55,77 +100,54 @@ async def _get_all_rates_from_usd() -> Dict[str, float]:
         logger.info("CACHE HIT: Rates found in Memory.")
         return json.loads(cached_data)
 
-    logger.info("CACHE MISS: Initiating API fetch sequence (Primary: OER, Secondary: CDN)...")
-    
-    
-    required_codes: Set[str] = set()
-    try:
-        with Session(engine) as session:
-            db_codes = repo.get_all_active_currency_codes(session)
-            required_codes = {code.upper() for code in db_codes}
-        logger.info(f"Required currencies from DB: {len(required_codes)}")
-    except Exception as e:
-        logger.error(f"DB Error (fetching codes): {e}")
+    logger.info("CACHE MISS: Checking Database backup before external API...")
 
     rates = {}
-    primary_failed = False
 
     try:
-        rates = await _fetch_primary_oer()
-        if rates:
-            logger.info(f"Primary API (OER) returned {len(rates)} currencies.")
-        else:
-            logger.warning("Primary API returned empty list.")
-            primary_failed = True
-    except Exception as e:
-        logger.error(f"Primary API failed: {e}")
-        primary_failed = True
-        rates = {}
-
-    fetched_keys = set(rates.keys())
-    missing_currencies = required_codes - fetched_keys
-    
-    should_use_secondary = False
-    
-    if primary_failed:
-        logger.warning("Primary API failed. Switching to Secondary.")
-        should_use_secondary = True
-    elif missing_currencies:
-        logger.warning(f"Primary API OK but missing codes: {missing_currencies}. Fetching Secondary to fill gaps.")
-        should_use_secondary = True
-    else:
-        logger.info("Primary API provided all required currencies. No need for Secondary.")
-
-    if should_use_secondary:
-        try:
-            secondary_rates = await _fetch_secondary_cdn()
+        with Session(engine) as session:
+            cache_entry = repo.get_exchange_rate_cache(session, base_currency="USD")
             
-            if secondary_rates:
-                filled_count = 0
-                for code, rate in secondary_rates.items():
-                    if code not in rates:
-                        rates[code] = rate
-                        filled_count += 1
+            if cache_entry and cache_entry.updated_at:
+                last_update = cache_entry.updated_at
+                if last_update.tzinfo is None:
+                    last_update = last_update.replace(tzinfo=timezone.utc)
                 
-                logger.info(f"Secondary Merge Complete: Added {filled_count} missing currencies.")
-            else:
-                logger.warning("Secondary API returned empty rates.")
+                age = datetime.now(timezone.utc) - last_update
+                
+                if age < timedelta(minutes=65):
+                    logger.info(f"DB FALLBACK: Found fresh data (Age: {age}). Loading to Memory.")
+                    rates = cache_entry.rates
+                else:
+                    logger.info(f"DB data is too old (Age: {age}). Need fresh data.")
 
-        except Exception as e:
-            logger.error(f"Secondary API failed: {e}")
+    except Exception as e:
+        logger.error(f"DB Fallback failed: {e}")
+
+    if not rates:
+        logger.warning("Fetching from External API...")
+        
+        rates = await _fetch_and_merge_api_data()
+        
+        if rates:
+            try:
+                with Session(engine) as session:
+                    repo.upsert_exchange_rate_cache(session, base_currency="USD", rates=rates)
+                    logger.info("Saved fresh rates to Postgres DB backup via Repo.")
+            except Exception as e:
+                logger.error(f"Could not save backup to DB: {e}")
 
     if not rates:
         raise CurrencyAPIError(code=502, message="All currency data sources are unavailable.")
 
-    memory_cache.set(cache_key, json.dumps(rates), ex=settings.CACHE_TTL_SECONDS)
-    
+    memory_cache.set(cache_key, json.dumps(rates), ex=settings.CACHE_TTL_SECONDS) 
+
     return rates
 
 
 async def get_conversion_rates(from_sym: str, to_syms: List[str]) -> Dict[str, float]:
     """
     Calculates conversion rates using a cached master list of USD-based rates.
-    It does NOT make an external API call directly.
     """
 
     all_rates_vs_usd = await _get_all_rates_from_usd()
