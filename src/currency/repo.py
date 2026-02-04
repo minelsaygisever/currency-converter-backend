@@ -1,12 +1,14 @@
 # src/currency/repository.py
 
-from typing import List, Optional
+from datetime import datetime
+from typing import List, Optional, Dict
 from sqlmodel import Session, select
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql.expression import and_
 from sqlalchemy.sql.functions import coalesce
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-from .models import Currency, CurrencyLocalization
+from .models import Currency, CurrencyLocalization, ExchangeRateCache
 from .schemas import CurrencyRead
 
 def get_active_currencies_with_localization(session: Session, lang: str) -> List[CurrencyRead]:
@@ -69,3 +71,27 @@ def get_all_active_currency_codes(session: Session) -> List[str]:
         )
     )
     return session.exec(statement).all()
+
+def get_exchange_rate_cache(session: Session, base_currency: str) -> Optional[ExchangeRateCache]:
+    """
+    Retrieves the cache record from the database for the specified currency.
+    """
+    return session.get(ExchangeRateCache, base_currency)
+
+def upsert_exchange_rate_cache(session: Session, base_currency: str, rates: Dict[str, float]):
+    """
+    It writes to the cache table atomically (updates if it exists, adds to it if it doesn't).
+    """
+    insert_stmt = pg_insert(ExchangeRateCache).values(
+        currency_base=base_currency,
+        rates=rates,
+        updated_at=datetime.utcnow()
+    )
+    
+    do_update_stmt = insert_stmt.on_conflict_do_update(
+        index_elements=['currency_base'],
+        set_=dict(rates=insert_stmt.excluded.rates, updated_at=datetime.utcnow())
+    )
+
+    session.exec(do_update_stmt)
+    session.commit()

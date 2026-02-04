@@ -21,35 +21,29 @@ class HistoricalDataService:
         self.session = session
         self.cache = memory_cache
 
-    def _get_raw_snapshots_with_cache(
-        self, frequency: str, days_to_fetch: int
+    def _get_cached_or_fetch(
+        self, 
+        range_str: str, 
+        ttl_seconds: int,
+        fetch_func
     ) -> List[CurrencyRateSnapshot]:
-        cache_key = f"raw_snapshots:{frequency}:{days_to_fetch}d"
+        cache_key = f"history:{range_str}"
         
         cached_data = self.cache.get(cache_key)
         if cached_data:
-            logger.info(f"RAW CACHE HIT for key: {cache_key}")
             snapshot_dicts = json.loads(cached_data)
             return [CurrencyRateSnapshot.model_validate(d) for d in snapshot_dicts]
 
-        logger.info(f"RAW CACHE MISS for key: {cache_key}. Fetching from DB.")
+        logger.info(f"HISTORY CACHE MISS: {cache_key}. Fetching from DB...")
         
-        end_date = datetime.now(timezone.utc).replace(minute=59, second=59, microsecond=999999)
-        start_date = end_date - timedelta(days=days_to_fetch)
-
-        db_rows = repo.get_range(
-            self.session, frequency=frequency, start=start_date, end=end_date, base_currency="USD"
-        )
+        data = fetch_func()
         
-        if db_rows:
-            ttl_seconds = 3600 if frequency == 'hourly' else 86400
-            snapshot_dicts = [row.model_dump(mode='json') for row in db_rows]
-            
-            # Cache set
+        if data:
+            snapshot_dicts = [row.model_dump(mode='json') for row in data]
             self.cache.set(cache_key, json.dumps(snapshot_dicts), ex=ttl_seconds)
-            logger.info(f"RAW CACHE SET for key: {cache_key}")
-
-        return db_rows
+            logger.info(f"HISTORY CACHE SET: {cache_key} (TTL: {ttl_seconds}s)")
+            
+        return data
     
     def _aggregate_monthly(self, daily_data: List[CurrencyRateSnapshot]) -> List[CurrencyRateSnapshot]:
         """Aggregates daily data to monthly by taking the last day of each month."""
@@ -87,38 +81,58 @@ class HistoricalDataService:
 
 
     def get_historical_data(self, range_str: str, base_currency: str = "USD") -> List[CurrencyRateSnapshot]:
+        target_base = "USD" 
         end_date = datetime.now(timezone.utc)
         
         if range_str == "1d":
-            days = 1
-            frequency = "hourly"
-            start_date = end_date - timedelta(days=1)
-            raw_snapshots = repo.get_range(self.session, frequency=frequency, start=start_date, end=end_date, base_currency=base_currency)
-            return raw_snapshots
+            return self._get_cached_or_fetch(
+                range_str="1d",
+                ttl_seconds=3600, # 1 H
+                fetch_func=lambda: repo.get_range(
+                    self.session, frequency="hourly", 
+                    start=end_date - timedelta(days=1), end=end_date, 
+                    base_currency=target_base
+                )
+            )
 
         elif range_str == "1w":
-            days = 7
-            frequency = "hourly"
-            start_date = end_date - timedelta(days=7)
-            raw_snapshots = repo.get_range(self.session, frequency=frequency, start=start_date, end=end_date, base_currency=base_currency)
-            return self._aggregate_8hourly(raw_snapshots)
+            def fetch_1w():
+                raw = repo.get_range(
+                    self.session, frequency="hourly", 
+                    start=end_date - timedelta(days=7), end=end_date, 
+                    base_currency=target_base
+                )
+                return self._aggregate_8hourly(raw)
 
-        else: # 1m, 6m, 1y, 5y
-            frequency = "daily"
+            return self._get_cached_or_fetch(
+                range_str="1w",
+                ttl_seconds=3600, # 1 H
+                fetch_func=fetch_1w
+            )
+
+        else: 
+            ttl_long = 86400 # 24 H
             days = {"1m": 30, "6m": 182, "1y": 365, "5y": 365*5}.get(range_str, 30)
             start_date = end_date - timedelta(days=days)
-            raw_snapshots = repo.get_range(self.session, frequency=frequency, start=start_date, end=end_date, base_currency=base_currency)
             
-            if range_str == "1m":
+            def fetch_long_range():
+                raw_snapshots = repo.get_range(
+                    self.session, frequency="daily", 
+                    start=start_date, end=end_date, 
+                    base_currency=target_base
+                )
+                
+                if range_str == "1m": return raw_snapshots
+                elif range_str == "6m": return self._aggregate_every_n_days(raw_snapshots, n=3)
+                elif range_str == "1y": return self._aggregate_every_n_days(raw_snapshots, n=7)
+                elif range_str == "5y": return self._aggregate_monthly(raw_snapshots)
                 return raw_snapshots
-            elif range_str == "6m":
-                return self._aggregate_every_n_days(raw_snapshots, n=3)
-            elif range_str == "1y":
-                return self._aggregate_every_n_days(raw_snapshots, n=7)
-            elif range_str == "5y":
-                return self._aggregate_monthly(raw_snapshots)
-        
-        return raw_snapshots
+
+            return self._get_cached_or_fetch(
+                range_str=range_str,
+                ttl_seconds=ttl_long,
+                fetch_func=fetch_long_range
+            )
         
     
     def get_rate_for_date(self, date_str: str) -> HistoricalRatesResponse:

@@ -16,6 +16,7 @@ from src.core.database import get_session
 from src.core.security import verify_api_key
 from src.core.rate_limiter import manual_rate_limiter
 from src.core.schemas import ErrorDetail
+from fastapi import BackgroundTasks
 
 
 router = APIRouter(
@@ -88,6 +89,7 @@ async def get_all_active_currencies(
         }
 )
 async def get_rates(
+    background_tasks: BackgroundTasks,
     from_symbol: str = Query(
         ..., 
         alias="from", 
@@ -115,7 +117,7 @@ async def get_rates(
         )
 
     try:
-        cross_rates_map = await get_conversion_rates(base_sym, to_symbols)
+        cross_rates_map = await get_conversion_rates(base_sym, to_symbols, background_tasks)
         # cross_rates_map: Dict[to_symbol:str, rate:float]
     except CurrencyAPIError as e:
         raise HTTPException(
