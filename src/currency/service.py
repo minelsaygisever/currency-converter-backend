@@ -113,7 +113,7 @@ async def _get_all_rates_from_usd(background_tasks: BackgroundTasks = None) -> D
 
     rates = {}
 
-    try:
+    try: 
         with Session(engine) as session:
             cache_entry = repo.get_exchange_rate_cache(session, base_currency="USD")
             
@@ -124,7 +124,7 @@ async def _get_all_rates_from_usd(background_tasks: BackgroundTasks = None) -> D
                 
                 age = datetime.now(timezone.utc) - last_update
                 
-                if age < timedelta(minutes=65):
+                if age < timedelta(minutes=50):
                     logger.info(f"DB FALLBACK: Found fresh data (Age: {age}). Loading to Memory.")
                     rates = cache_entry.rates
                 else:
